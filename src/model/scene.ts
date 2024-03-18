@@ -1,5 +1,7 @@
-import { vec3 } from 'wgpu-matrix';
+import { Mat4, Vec3, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
+import { player_object_collision } from '../utils/collisions';
+import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';
 import { Floor } from './floor';
 import { House } from './house';
@@ -38,23 +40,42 @@ export class Scene {
 		);
 	}
 
-	update() {
-		let i: number = 0;
+	update(meshes: ObjMesh[], playerMesh: ObjMesh) {
+		const playerBoundingVertices: Float32Array = playerMesh.boundingBoxVerticesInitial;
 
+		this.player.update();
+		const playerTransform: Float32Array = new Float32Array(16);
+		for (let i = 0; i < 16; i++) {
+			playerTransform[i] = <number>this.player.get_model().at(i);
+		}
+
+		let i: number = 0;
 		let b_index: number = 0;
 		for (let n: number = 0; n < this.objectImages.length; n++) {
 			const name: string = this.objectImages[n].split('.')[0];
+
 			(this as any)[name].update();
 			let model2 = (this as any)[name].get_model();
 
 			const hasBoundingBoxes = this.boundingBoxNames.includes(name);
+
 			for (let j: number = 0; j < 16; j++) {
 				// Fill objectData with the model matrices for all the quads
 				this.objectData[16 * i + j] = <number>model2.at(j);
-				if (hasBoundingBoxes) this.boundingBoxData[16 * b_index + j] = <number>model2.at(j);
+				if (hasBoundingBoxes) {
+					this.boundingBoxData[16 * b_index + j] = <number>model2.at(j);
+				}
 			}
+
 			i++;
-			if (hasBoundingBoxes) {
+
+			if (hasBoundingBoxes && meshes[n].modelName !== 'player') {
+				const modelTransorm: Float32Array = this.objectData.slice(16 * b_index, 16 * b_index + 16);
+				const modelVertices: Float32Array = meshes[n].boundingBoxVerticesInitial;
+
+				if (player_object_collision(playerBoundingVertices, playerTransform, modelVertices, modelTransorm)) {
+					console.log('Collision');
+				}
 				b_index++;
 			}
 		}

@@ -1,6 +1,7 @@
-import { mat4 } from 'wgpu-matrix';
+import { Vec3, mat4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { degToRad } from '../math_stuff';
+import { player_object_collision } from '../utils/collisions';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';
@@ -31,6 +32,7 @@ export class Renderer {
 	uniformBuffer: GPUBuffer;
 	objectBuffer: GPUBuffer;
 	boundingBoxBuffer: GPUBuffer;
+	playerPosBuffer: GPUBuffer;
 
 	frameBindGroupLayout: GPUBindGroupLayout;
 	boundingBoxBindGroupLayout: GPUBindGroupLayout;
@@ -118,6 +120,12 @@ export class Renderer {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
+		this.playerPosBuffer = this.device.createBuffer({
+			// values in a 4x4 matrix * bytes per value * # of matrices
+			size: 4 * 3,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
 		if (this.renderBoundingBoxes) {
 			this.boundingBoxBuffer = this.device.createBuffer({
 				// values in a 4x4 matrix * bytes per value * # of matrices
@@ -134,6 +142,7 @@ export class Renderer {
 
 			this.objectMeshes[i] = new ObjMesh(this.device);
 			await this.objectMeshes[i].initialize(`dist/models/${modelName}.obj`);
+			this.objectMeshes[i].set_model_name(modelName);
 
 			if (this.renderBoundingBoxes && this.boundingBoxNames.includes(modelName)) {
 				await this.objectMeshes[i].generate_bounding_boxes(`dist/boundingBoxes/${modelName}_b.obj`);
@@ -197,6 +206,11 @@ export class Renderer {
 						hasDynamicOffset: false,
 					},
 				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.VERTEX,
+					buffer: {},
+				},
 			],
 		});
 
@@ -251,6 +265,12 @@ export class Renderer {
 					binding: 1,
 					resource: {
 						buffer: this.objectBuffer,
+					},
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: this.playerPosBuffer,
 					},
 				},
 			],
@@ -353,7 +373,7 @@ export class Renderer {
 		}
 	}
 
-	render = (renderables: RenderData) => {
+	render = (renderables: RenderData, cameraPosition: Vec3) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
 		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 50);
 		const view = renderables.viewTransform;
@@ -380,6 +400,8 @@ export class Renderer {
 
 		this.device.queue.writeBuffer(this.uniformBuffer, 0, <ArrayBuffer>view);
 		this.device.queue.writeBuffer(this.uniformBuffer, 64, <ArrayBuffer>projection);
+
+		this.device.queue.writeBuffer(this.playerPosBuffer, 0, <ArrayBuffer>new Float32Array(cameraPosition));
 
 		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
 		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();
@@ -416,6 +438,7 @@ export class Renderer {
 			let b_index: number = 0;
 			for (let i: number = 0; i < this.objectImages.length; i++) {
 				const modelName: string = this.objectImages[i].split('.')[0];
+
 				if (this.boundingBoxNames.includes(modelName)) {
 					this.renderPass.setVertexBuffer(0, this.objectMeshes[i].boundingBoxBuffer);
 					this.renderPass.draw(this.objectMeshes[i].boundingBoxVertexCount, 1, 0, b_index);
@@ -425,7 +448,6 @@ export class Renderer {
 		}
 
 		this.renderPass.end();
-
 		this.device.queue.submit([this.encoder.finish()]);
 	};
 }

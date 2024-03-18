@@ -46,4 +46,8 @@ export class Camera {
 	get_view(): Mat4 {
 		return this.view;
 	}
+
+	get_position(): Vec3 {
+		return this.position;
+	}
 }

@@ -1,5 +1,4 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
-import { player_object_collision } from '../utils/collisions';
 
 export class ObjMesh {
 	device: GPUDevice;
@@ -14,11 +13,13 @@ export class ObjMesh {
 	// Vector Normals
 	vn: Vec3[];
 	// BoundingBox vertices
-	vb: Vec3[];
+	vb: number[][];
 	vertices: Float32Array;
 	boundingBoxVertices: Float32Array;
+	boundingBoxVerticesInitial: Float32Array;
 	vertexCount: number;
 	boundingBoxVertexCount: number;
+	modelName: string;
 
 	constructor(device: GPUDevice) {
 		this.device = device;
@@ -26,6 +27,10 @@ export class ObjMesh {
 		this.vt = [];
 		this.vn = [];
 		this.vb = [];
+	}
+
+	set_model_name(name: string) {
+		this.modelName = name;
 	}
 
 	async generate_bounding_boxes(url: string) {
@@ -45,6 +50,7 @@ export class ObjMesh {
 
 		this.boundingBoxVertices = new Float32Array(result);
 		this.boundingBoxVertexCount = this.boundingBoxVertices.length / 3;
+		this.boundingBoxVerticesInitial = new Float32Array(this.vb.flat());
 
 		this.boundingBoxBuffer = this.device.createBuffer({
 			size: this.boundingBoxVertices.byteLength,
@@ -54,10 +60,6 @@ export class ObjMesh {
 
 		new Float32Array(this.boundingBoxBuffer.getMappedRange()).set(this.boundingBoxVertices);
 		this.boundingBoxBuffer.unmap();
-
-		if (player_object_collision(this.boundingBoxVertices)) {
-			console.log('Player Collision!');
-		}
 	}
 
 	async initialize(url: string) {

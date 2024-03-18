@@ -1,5 +1,7 @@
-import { Vec2 } from 'wgpu-matrix';
+import { Vec2, Vec3 } from 'wgpu-matrix';
+import { Camera } from '../model/camera';
 import { Scene } from '../model/scene';
+import { ObjMesh } from '../view/obj_mesh';
 import { Renderer } from '../view/renderer';
 
 export class App {
@@ -60,8 +62,10 @@ export class App {
 
 		this.timeStamp = Date.now();
 
-		this.scene.update();
-		this.renderer.render(this.scene.get_renderables());
+		const meshes: ObjMesh[] = this.renderer.objectMeshes;
+		const playerMesh: ObjMesh = meshes.filter(m => m.modelName === 'player')[0];
+		this.scene.update(meshes, playerMesh);
+		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
 
 		this.scene.move_player_FB(this.moveVec[0]);
 		this.scene.move_player_LR(this.moveVec[1]);

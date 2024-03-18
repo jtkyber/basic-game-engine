@@ -1,4 +1,4 @@
-import { Mat4, Vec3, mat4, vec3 } from 'wgpu-matrix';
+import { Mat4, Vec3, mat4 } from 'wgpu-matrix';
 import { degToRad } from '../math_stuff';
 import { Model } from './model';
 
