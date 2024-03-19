@@ -1,12 +1,12 @@
-import { Vec3 } from 'wgpu-matrix';
+import { Vec3, Vec4 } from 'wgpu-matrix';
 import {
 	cross,
 	dot,
 	normalize,
+	num_vec_multiply,
 	vecA_divide_by_vecB,
 	vecA_minus_vecB,
 	vecAdd,
-	vec_num_multiply,
 } from './math_stuff';
 import { one_four_by_four_four } from './matrices';
 
@@ -34,7 +34,7 @@ function line_plane_collision_test(
 	center: Vec3,
 	objVertices1: Float32Array,
 	objVertices2: Float32Array
-): boolean {
+): Vec3 | false {
 	// Check objVertices1 diagonals against objVertices2 planes
 	for (let i: number = 0; i < objVertices1.length; i += 3) {
 		// Interate diagonals
@@ -51,9 +51,6 @@ function line_plane_collision_test(
 			const v2: Vec3 = [objVertices2[j + 3], objVertices2[j + 4], objVertices2[j + 5]];
 			const v3: Vec3 = [objVertices2[j + 6], objVertices2[j + 7], objVertices2[j + 8]];
 			const v4: Vec3 = [objVertices2[j + 9], objVertices2[j + 10], objVertices2[j + 11]];
-
-			// Diagonal point's perpendicular vector to plane
-			const w: Vec3 = vecA_minus_vecB(v1, center);
 
 			// Plane normal (d = scaler)
 			const nA: number = v1[1] * (v2[2] - v3[2]) + v2[1] * (v3[2] - v1[2]) + v3[1] * (v1[2] - v2[2]);
@@ -92,8 +89,8 @@ function line_plane_collision_test(
 				const dot4: number = dot(intersectionN4, vec4N);
 
 				if (dot1 <= 0 && dot2 <= 0 && dot3 <= 0 && dot4 <= 0) {
-					return true;
-					// Return vector to translate player back by
+					// const offsetVec: Vec3 = vecA_minus_vecB(diagVertex, intersection);
+					return normalize([nA, nB, nC]);
 				}
 			}
 		}
@@ -109,7 +106,7 @@ export function player_object_collision(
 	modelVertices: Float32Array,
 	modelVerticesGrouped: Float32Array,
 	modelTransform: Float32Array
-): boolean {
+): Vec3 | false {
 	const transformedPvertices: Float32Array = get_transformed_cuboid_vertices(pVertices, playerTransform);
 	const transformedPverticesGrouped: Float32Array = get_transformed_cuboid_vertices(
 		pVerticesGrouped,
@@ -134,11 +131,22 @@ export function player_object_collision(
 
 		// Just need to now check intersection of player diagonals from center
 		// against other object's planes, and vice versa
-		if (line_plane_collision_test(playerCenter, transformedPvertices, transformedMverticesGrouped)) {
-			return true;
-		} else if (line_plane_collision_test(modelCenter, transformedMvertices, transformedPverticesGrouped)) {
-			return true;
-		}
+		const objectPlaneNormal: Vec3 | false = line_plane_collision_test(
+			playerCenter,
+			transformedPvertices,
+			transformedMverticesGrouped
+		);
+
+		if (objectPlaneNormal) return objectPlaneNormal;
+
+		const playerPlaneNormal: Vec3 | false = line_plane_collision_test(
+			modelCenter,
+			transformedMvertices,
+			transformedPverticesGrouped
+		);
+
+		if (playerPlaneNormal) return num_vec_multiply(-1, playerPlaneNormal);
+
 		g_index += 24 * 3;
 	}
 

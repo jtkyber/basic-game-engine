@@ -1,6 +1,7 @@
-import { Mat4, Vec3, vec3 } from 'wgpu-matrix';
+import { Mat4, Vec3, Vec4, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { player_object_collision } from '../utils/collisions';
+import { dot, normalize, num_vec_multiply } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';
 import { Floor } from './floor';
@@ -19,6 +20,7 @@ export class Scene {
 	camera: Camera;
 	objectData: Float32Array;
 	boundingBoxData: Float32Array;
+	moveDeltaVector: Vec3;
 
 	constructor(objectImages: string[], boundingBoxNames: string[]) {
 		this.objectImages = objectImages;
@@ -28,7 +30,7 @@ export class Scene {
 		this.boundingBoxData = new Float32Array(16 * 3);
 
 		this.player = new Player([0, 0, 0], [0, 0, 0]);
-		this.spaceship = new Spaceship([0, -20, 3], [0, 0, 0]);
+		this.spaceship = new Spaceship([0, -20, 0], [0, 0, 0]);
 		this.house = new House([13, -10, 0], [0, 0, 0]);
 		this.floor = new Floor([0, 0, 0], [0, 0, 0]);
 
@@ -75,17 +77,25 @@ export class Scene {
 				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
 				const modelVerticesgrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
 
-				if (
-					player_object_collision(
-						playerBoundingVerticesInitial,
-						playerBoundingVerticesGrouped,
-						playerTransform,
-						modelVerticesInitial,
-						modelVerticesgrouped,
-						modelTransorm
-					)
-				) {
-					console.log('Collision');
+				const contactPlaneNormal: Vec3 | false = player_object_collision(
+					playerBoundingVerticesInitial,
+					playerBoundingVerticesGrouped,
+					playerTransform,
+					modelVerticesInitial,
+					modelVerticesgrouped,
+					modelTransorm
+				);
+
+				if (contactPlaneNormal) {
+					// Maybe check if player is colliding with more than one
+					// cuboid, and if so, average the offset vectors
+					if (dot(this.moveDeltaVector, contactPlaneNormal) <= 0) {
+						const offsetVec: Vec3 = num_vec_multiply(
+							dot(this.moveDeltaVector, contactPlaneNormal) / 1,
+							contactPlaneNormal
+						);
+						this.offset_player(offsetVec, -1);
+					}
 				}
 				b_index++;
 			}
@@ -119,9 +129,14 @@ export class Scene {
 
 		// Translate straight back along the forwards vector to the camera
 		this.camera.position = vec3.addScaled(this.camera.position, this.camera.forwards, -4);
+	}
+
+	offset_player(dir: Vec3, amt: number) {
+		// Camera
+		this.camera.position = vec3.addScaled(this.camera.position, [dir[0], dir[1], 0], amt);
 
 		// Player
-		this.player.eulers[1] = this.camera.eulers[2];
+		this.player.position = vec3.addScaled(this.player.position, [dir[0], dir[1], 0], amt);
 	}
 
 	move_player_FB(forwardsAmt: number) {

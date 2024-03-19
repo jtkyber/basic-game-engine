@@ -14,4 +14,8 @@ export class Model {
 	get_model(): Mat4 {
 		return this.model;
 	}
+
+	set_rotation(rot: number, i: number): void {
+		this.eulers[i] = rot;
+	}
 }

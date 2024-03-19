@@ -1,6 +1,7 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
 import { Camera } from '../model/camera';
 import { Scene } from '../model/scene';
+import { vecA_minus_vecB } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
 import { Renderer } from '../view/renderer';
 
@@ -67,8 +68,14 @@ export class App {
 		this.scene.update(meshes, playerMesh);
 		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
 
+		const lastPosition: Vec3 = this.scene.camera.position;
 		this.scene.move_player_FB(this.moveVec[0]);
 		this.scene.move_player_LR(this.moveVec[1]);
+		const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastPosition);
+		this.scene.moveDeltaVector = moveDeltaVector;
+
+		if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0)
+			this.scene.player.set_rotation(Math.atan2(moveDeltaVector[1], moveDeltaVector[0]) * (180 / Math.PI), 1);
 
 		if (this.i >= 10) {
 			this.fpsAvg =

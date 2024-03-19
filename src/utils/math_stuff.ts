@@ -57,6 +57,10 @@ export function vecA_divide_by_vecB(a: Vec3, b: Vec3): Vec3 {
 	return [a[0] / b[0], a[1] / b[1], a[2] / b[2]];
 }
 
-export function vec_num_multiply(a: number, b: Vec3): Vec3 {
+export function num_vec_multiply(a: number, b: Vec3): Vec3 {
 	return [a * b[0], a * b[1], a * b[2]];
+}
+
+export function num_divide_by_vec(a: number, b: Vec3): Vec3 {
+	return [a / b[0], a / b[1], a / b[2]];
 }
