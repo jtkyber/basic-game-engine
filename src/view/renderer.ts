@@ -1,7 +1,7 @@
 import { Vec3, mat4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
-import { degToRad } from '../math_stuff';
 import { player_object_collision } from '../utils/collisions';
+import { degToRad } from '../utils/math_stuff';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';

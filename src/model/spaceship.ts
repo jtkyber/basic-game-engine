@@ -1,5 +1,5 @@
 import { Mat4, Vec3, mat4, vec3 } from 'wgpu-matrix';
-import { degToRad } from '../math_stuff';
+import { degToRad } from '../utils/math_stuff';
 import { Model } from './model';
 
 export class Spaceship extends Model {
@@ -12,12 +12,9 @@ export class Spaceship extends Model {
 	}
 
 	update() {
-		this.eulers[1] += 0.005;
-		this.eulers[1] %= 360;
-
 		this.model = mat4.create();
 		// v: the vector you are translating by
-		this.position = vec3.addScaled(this.position, [0, 1, 0], 0.05);
+		// this.position = vec3.addScaled(this.position, [0, 1, 0], 0.05);
 		mat4.translation(this.position, this.model);
 		// axis: the axis you are rotating around
 		// angleInRadians: The angle you are rotating by

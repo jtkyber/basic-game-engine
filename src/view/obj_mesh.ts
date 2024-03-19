@@ -17,6 +17,7 @@ export class ObjMesh {
 	vertices: Float32Array;
 	boundingBoxVertices: Float32Array;
 	boundingBoxVerticesInitial: Float32Array;
+	boundingBoxVerticesGrouped: Float32Array;
 	vertexCount: number;
 	boundingBoxVertexCount: number;
 	modelName: string;
@@ -31,6 +32,24 @@ export class ObjMesh {
 
 	set_model_name(name: string) {
 		this.modelName = name;
+	}
+
+	group_by_face(vertices: number[][], lines: string[]): Float32Array {
+		const newArr: number[] = [];
+
+		lines.forEach(l => {
+			const line = l.trim();
+			if (line[0] === 'f') {
+				const faceIndeces: string[] = line.split(' ').map(l => l.split('/')[0]);
+
+				newArr.push(...vertices[Number(faceIndeces[1]) - 1]);
+				newArr.push(...vertices[Number(faceIndeces[2]) - 1]);
+				newArr.push(...vertices[Number(faceIndeces[3]) - 1]);
+				newArr.push(...vertices[Number(faceIndeces[4]) - 1]);
+			}
+		});
+
+		return new Float32Array(newArr);
 	}
 
 	async generate_bounding_boxes(url: string) {
@@ -50,7 +69,9 @@ export class ObjMesh {
 
 		this.boundingBoxVertices = new Float32Array(result);
 		this.boundingBoxVertexCount = this.boundingBoxVertices.length / 3;
+
 		this.boundingBoxVerticesInitial = new Float32Array(this.vb.flat());
+		this.boundingBoxVerticesGrouped = this.group_by_face(this.vb, lines);
 
 		this.boundingBoxBuffer = this.device.createBuffer({
 			size: this.boundingBoxVertices.byteLength,

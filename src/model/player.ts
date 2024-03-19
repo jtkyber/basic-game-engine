@@ -1,5 +1,5 @@
 import { Mat4, Vec3, mat4 } from 'wgpu-matrix';
-import { degToRad } from '../math_stuff';
+import { degToRad } from '../utils/math_stuff';
 import { Model } from './model';
 
 export class Player extends Model {

@@ -28,7 +28,7 @@ export class Scene {
 		this.boundingBoxData = new Float32Array(16 * 3);
 
 		this.player = new Player([0, 0, 0], [0, 0, 0]);
-		this.spaceship = new Spaceship([0, -60, 3], [0, 0, 0]);
+		this.spaceship = new Spaceship([0, -20, 3], [0, 0, 0]);
 		this.house = new House([13, -10, 0], [0, 0, 0]);
 		this.floor = new Floor([0, 0, 0], [0, 0, 0]);
 
@@ -41,7 +41,8 @@ export class Scene {
 	}
 
 	update(meshes: ObjMesh[], playerMesh: ObjMesh) {
-		const playerBoundingVertices: Float32Array = playerMesh.boundingBoxVerticesInitial;
+		const playerBoundingVerticesInitial: Float32Array = playerMesh.boundingBoxVerticesInitial;
+		const playerBoundingVerticesGrouped: Float32Array = playerMesh.boundingBoxVerticesGrouped;
 
 		this.player.update();
 		const playerTransform: Float32Array = new Float32Array(16);
@@ -71,9 +72,19 @@ export class Scene {
 
 			if (hasBoundingBoxes && meshes[n].modelName !== 'player') {
 				const modelTransorm: Float32Array = this.objectData.slice(16 * b_index, 16 * b_index + 16);
-				const modelVertices: Float32Array = meshes[n].boundingBoxVerticesInitial;
+				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
+				const modelVerticesgrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
 
-				if (player_object_collision(playerBoundingVertices, playerTransform, modelVertices, modelTransorm)) {
+				if (
+					player_object_collision(
+						playerBoundingVerticesInitial,
+						playerBoundingVerticesGrouped,
+						playerTransform,
+						modelVerticesInitial,
+						modelVerticesgrouped,
+						modelTransorm
+					)
+				) {
 					console.log('Collision');
 				}
 				b_index++;

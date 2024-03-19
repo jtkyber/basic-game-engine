@@ -1,5 +1,5 @@
 import { Mat4, Vec3, mat4, vec3 } from 'wgpu-matrix';
-import { degToRad } from '../math_stuff';
+import { degToRad } from '../utils/math_stuff';
 
 export class Triangle {
 	position: Vec3;
