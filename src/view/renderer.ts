@@ -1,6 +1,5 @@
 import { Vec3, mat4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
-import { player_object_collision } from '../utils/collisions';
 import { degToRad } from '../utils/math_stuff';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
@@ -12,7 +11,7 @@ export class Renderer {
 	// Objects
 	objectImages: string[];
 	boundingBoxNames: string[];
-	renderBoundingBoxes: boolean;
+	collisionDebug: boolean;
 
 	// Canvas Stuff
 	canvas: HTMLCanvasElement;
@@ -70,11 +69,11 @@ export class Renderer {
 		canvas: HTMLCanvasElement,
 		objectImages: string[],
 		boundingBoxNames: string[],
-		renderBoundingBoxes: boolean
+		collisionDebug: boolean
 	) {
 		this.objectImages = objectImages;
 		this.boundingBoxNames = boundingBoxNames;
-		this.renderBoundingBoxes = renderBoundingBoxes;
+		this.collisionDebug = collisionDebug;
 		this.canvas = canvas;
 		this.context = <GPUCanvasContext>canvas.getContext('webgpu');
 		this.fov = degToRad(60);
@@ -126,7 +125,7 @@ export class Renderer {
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		if (this.renderBoundingBoxes) {
+		if (this.collisionDebug) {
 			this.boundingBoxBuffer = this.device.createBuffer({
 				// values in a 4x4 matrix * bytes per value * # of matrices
 				label: 'bounding box buffer',
@@ -144,7 +143,7 @@ export class Renderer {
 			await this.objectMeshes[i].initialize(`dist/models/${modelName}.obj`);
 			this.objectMeshes[i].set_model_name(modelName);
 
-			if (this.renderBoundingBoxes && this.boundingBoxNames.includes(modelName)) {
+			if (this.boundingBoxNames.includes(modelName)) {
 				await this.objectMeshes[i].generate_bounding_boxes(`dist/boundingBoxes/${modelName}_b.obj`);
 			}
 
@@ -214,7 +213,7 @@ export class Renderer {
 			],
 		});
 
-		if (this.renderBoundingBoxes) {
+		if (this.collisionDebug) {
 			this.boundingBoxBindGroupLayout = <GPUBindGroupLayout>this.device.createBindGroupLayout({
 				label: 'bounding box bind group layout',
 				entries: [
@@ -276,7 +275,7 @@ export class Renderer {
 			],
 		});
 
-		if (this.renderBoundingBoxes) {
+		if (this.collisionDebug) {
 			this.boundingBoxBindGroup = this.device.createBindGroup({
 				label: 'bounding box bing group',
 				layout: this.boundingBoxBindGroupLayout,
@@ -319,12 +318,12 @@ export class Renderer {
 				],
 			},
 			primitive: {
-				topology: 'triangle-list',
+				topology: this.collisionDebug ? 'line-list' : 'triangle-list',
 			},
 			depthStencil: this.depthStencilState,
 		});
 
-		if (this.renderBoundingBoxes) {
+		if (this.collisionDebug) {
 			this.boundingBoxPipeline = <GPURenderPipeline>this.device.createRenderPipeline({
 				label: 'bounding box pipeline',
 				layout: this.device.createPipelineLayout({
@@ -388,7 +387,7 @@ export class Renderer {
 			renderables.modelTransforms.length
 		);
 
-		if (this.renderBoundingBoxes) {
+		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(
 				this.boundingBoxBuffer,
 				0,
@@ -430,7 +429,7 @@ export class Renderer {
 			objectsDrawn++;
 		}
 
-		if (this.renderBoundingBoxes) {
+		if (this.collisionDebug) {
 			this.renderPass.setPipeline(this.boundingBoxPipeline);
 			this.renderPass.setBindGroup(0, this.boundingBoxBindGroup);
 

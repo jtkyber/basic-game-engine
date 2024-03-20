@@ -1,13 +1,5 @@
-import { Vec3, Vec4 } from 'wgpu-matrix';
-import {
-	cross,
-	dot,
-	normalize,
-	num_vec_multiply,
-	vecA_divide_by_vecB,
-	vecA_minus_vecB,
-	vecAdd,
-} from './math_stuff';
+import { Vec3 } from 'wgpu-matrix';
+import { dot, normalize, num_vec_multiply, vecA_minus_vecB } from './math_stuff';
 import { one_four_by_four_four } from './matrices';
 
 function get_cuboid_center(vertices: Float32Array): Vec3 {

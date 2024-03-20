@@ -1,5 +1,4 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
-import { Camera } from '../model/camera';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
@@ -10,7 +9,7 @@ export class App {
 	renderer: Renderer;
 	objectImages: string[];
 	boundingBoxNames: string[];
-	renderBoundingBoxes: boolean;
+	collisionDebug: boolean;
 	scene: Scene;
 	keysPressed: string[];
 	moveAmtFB: number;
@@ -21,28 +20,31 @@ export class App {
 	fpsValue: string;
 	fpsAvg: number;
 	i: number;
+	pointerLocked: boolean;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
-		this.objectImages = ['house.png', 'spaceship.jpg', 'player.png', 'floor.jpg'];
+		this.objectImages = ['house.png', 'spaceship.jpg', 'player.jpg', 'floor.jpg'];
 		this.boundingBoxNames = ['house', 'spaceship', 'player'];
-		this.renderBoundingBoxes = true;
-		this.renderer = new Renderer(canvas, this.objectImages, this.boundingBoxNames, this.renderBoundingBoxes);
+		this.collisionDebug = false;
+		this.renderer = new Renderer(canvas, this.objectImages, this.boundingBoxNames, this.collisionDebug);
 		this.scene = new Scene(this.objectImages, this.boundingBoxNames);
 		this.fpsAvg = 0;
 		this.deltaTimes = [];
 		this.i = 0;
+		this.pointerLocked = false;
 
 		document.addEventListener('keydown', e => this.handleKeyDown(e));
 		document.addEventListener('keyup', e => this.handleKeyUp(e));
 		document.addEventListener('mousemove', e => this.handleMouseMove(e));
 		document.addEventListener('mousedown', e => this.handleMouseDown(e));
+		this.canvas.addEventListener('wheel', e => this.handleScrollWheel(e), { passive: true });
 		document.addEventListener(
 			'pointerlockchange',
 			() => {
-				// if (document.pointerLockElement === canvas) {
-				// 	this.userIsInTab = true;
-				// } else this.userIsInTab = false;
+				if (document.pointerLockElement === canvas) {
+					this.pointerLocked = true;
+				} else this.pointerLocked = false;
 			},
 			false
 		);
@@ -69,13 +71,17 @@ export class App {
 		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
 
 		const lastPosition: Vec3 = this.scene.camera.position;
+
 		this.scene.move_player_FB(this.moveVec[0]);
 		this.scene.move_player_LR(this.moveVec[1]);
+
+		// Get distance/direction moved vector from last frame
 		const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastPosition);
 		this.scene.moveDeltaVector = moveDeltaVector;
 
-		if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0)
+		if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0) {
 			this.scene.player.set_rotation(Math.atan2(moveDeltaVector[1], moveDeltaVector[0]) * (180 / Math.PI), 1);
+		}
 
 		if (this.i >= 10) {
 			this.fpsAvg =
@@ -94,7 +100,11 @@ export class App {
 		if (running) requestAnimationFrame(this.run);
 	};
 
+	handlePlayerTurn() {}
+
 	handleKeyDown(e: KeyboardEvent) {
+		if (!this.pointerLocked) return;
+
 		if (e.code === 'KeyW') {
 			this.moveVec[0] = this.moveAmtFB;
 		} else if (e.code === 'KeyS') {
@@ -109,6 +119,8 @@ export class App {
 	}
 
 	handleKeyUp(e: KeyboardEvent) {
+		if (!this.pointerLocked) return;
+
 		switch (e.code) {
 			case 'KeyW':
 				this.moveVec[0] = 0;
@@ -126,11 +138,19 @@ export class App {
 	}
 
 	handleMouseMove(e: MouseEvent) {
+		if (!this.pointerLocked) return;
+
 		this.scene.spin_player(-(e.movementX / 20), -(e.movementY / 20));
 	}
 
 	handleMouseDown(e: MouseEvent) {
 		this.lockPointer();
+	}
+
+	handleScrollWheel(e: WheelEvent) {
+		if (!this.pointerLocked) return;
+
+		this.scene.camDistFromPlayer += e.deltaY / 500;
 	}
 
 	lockPointer() {

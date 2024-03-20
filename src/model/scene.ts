@@ -16,33 +16,37 @@ export class Scene {
 	house: House;
 	player: Player;
 	floor: Floor;
-	spinSpeeds: number[];
 	camera: Camera;
 	objectData: Float32Array;
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
+	camDistFromPlayer: number;
+	camHeightAbovePlayer: number;
 
 	constructor(objectImages: string[], boundingBoxNames: string[]) {
 		this.objectImages = objectImages;
 		this.boundingBoxNames = boundingBoxNames;
-		this.spinSpeeds = [];
 		this.objectData = new Float32Array(16 * 4);
 		this.boundingBoxData = new Float32Array(16 * 3);
+		this.camDistFromPlayer = 2.5;
+		this.camHeightAbovePlayer = 0.5;
 
 		this.player = new Player([0, 0, 0], [0, 0, 0]);
 		this.spaceship = new Spaceship([0, -20, 0], [0, 0, 0]);
 		this.house = new House([13, -10, 0], [0, 0, 0]);
 		this.floor = new Floor([0, 0, 0], [0, 0, 0]);
 
-		// this.camera = new Camera([-2, 0, 1], 0, 0);
 		this.camera = new Camera(
-			[this.player.position[0] - 4, this.player.position[1], this.player.position[2] + 1.5],
-			0,
+			[this.player.position[0] - this.camDistFromPlayer, this.player.position[1], this.player.position[2]],
+			this.camHeightAbovePlayer,
 			-10
 		);
 	}
 
 	update(meshes: ObjMesh[], playerMesh: ObjMesh) {
+		if (this.camDistFromPlayer < 1) this.camDistFromPlayer = 1;
+		else if (this.camDistFromPlayer > 10) this.camDistFromPlayer = 10;
+
 		const playerBoundingVerticesInitial: Float32Array = playerMesh.boundingBoxVerticesInitial;
 		const playerBoundingVerticesGrouped: Float32Array = playerMesh.boundingBoxVerticesGrouped;
 
@@ -88,7 +92,11 @@ export class Scene {
 
 				if (contactPlaneNormal) {
 					// Maybe check if player is colliding with more than one
-					// cuboid, and if so, average the offset vectors
+					// cuboid, and if so, average the offset vectors.
+
+					// Then, check intersection along z (vertical) axis for top planes of each intersected
+					// cuboid and check if bottom z of player is close enough,
+					// then match player height to highest possible cuboid
 					if (dot(this.moveDeltaVector, contactPlaneNormal) <= 0) {
 						const offsetVec: Vec3 = num_vec_multiply(
 							dot(this.moveDeltaVector, contactPlaneNormal) / 1,
@@ -119,7 +127,11 @@ export class Scene {
 	spin_player(dX: number, dY: number) {
 		// Camera
 		// Translate to center eye level of player
-		this.camera.position = [this.player.position[0], this.player.position[1], this.player.position[2] + 1.5];
+		this.camera.position = [
+			this.player.position[0],
+			this.player.position[1],
+			this.player.position[2] + this.camHeightAbovePlayer,
+		];
 
 		// Apply rotations
 		this.camera.eulers[2] += dX;
@@ -128,7 +140,11 @@ export class Scene {
 		this.camera.eulers[1] = Math.min(89, Math.max(-89, this.camera.eulers[1] + dY));
 
 		// Translate straight back along the forwards vector to the camera
-		this.camera.position = vec3.addScaled(this.camera.position, this.camera.forwards, -4);
+		this.camera.position = vec3.addScaled(
+			this.camera.position,
+			this.camera.forwards,
+			-this.camDistFromPlayer
+		);
 	}
 
 	offset_player(dir: Vec3, amt: number) {

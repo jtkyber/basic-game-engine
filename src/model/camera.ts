@@ -22,6 +22,8 @@ export class Camera {
 	}
 
 	update() {
+		if (this.position[2] < 0.1) this.position[2] = 0.1;
+
 		this.forwards = [
 			Math.cos(degToRad(this.eulers[2])) * Math.cos(degToRad(this.eulers[1])),
 			Math.sin(degToRad(this.eulers[2])) * Math.cos(degToRad(this.eulers[1])),
