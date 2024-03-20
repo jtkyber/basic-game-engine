@@ -92,7 +92,7 @@ export class Renderer {
 	}
 
 	async setupDevice() {
-		this.adapter = <GPUAdapter>await navigator.gpu.requestAdapter();
+		this.adapter = <GPUAdapter>await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
 		this.device = <GPUDevice>await this.adapter.requestDevice();
 		this.format = <GPUTextureFormat>navigator.gpu.getPreferredCanvasFormat();
 		this.shaderModule = <GPUShaderModule>this.device.createShaderModule({ label: 'shader', code: shader });
@@ -102,7 +102,7 @@ export class Renderer {
 		this.context.configure({
 			device: this.device,
 			format: this.format,
-			alphaMode: 'premultiplied',
+			alphaMode: 'opaque',
 		});
 	}
 

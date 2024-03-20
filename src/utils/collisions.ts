@@ -98,13 +98,15 @@ export function player_object_collision(
 	modelVertices: Float32Array,
 	modelVerticesGrouped: Float32Array,
 	modelTransform: Float32Array
-): Vec3 | false {
+): Vec3[] | false {
 	const transformedPvertices: Float32Array = get_transformed_cuboid_vertices(pVertices, playerTransform);
 	const transformedPverticesGrouped: Float32Array = get_transformed_cuboid_vertices(
 		pVerticesGrouped,
 		playerTransform
 	);
 	const playerCenter: Vec3 = get_cuboid_center(transformedPvertices);
+
+	const modelCollisions: Vec3[] = [];
 
 	let g_index: number = 0;
 	for (let i: number = 0; i < modelVertices.length; i += 24) {
@@ -129,7 +131,9 @@ export function player_object_collision(
 			transformedMverticesGrouped
 		);
 
-		if (objectPlaneNormal) return objectPlaneNormal;
+		if (objectPlaneNormal) {
+			modelCollisions.push(objectPlaneNormal);
+		}
 
 		const playerPlaneNormal: Vec3 | false = line_plane_collision_test(
 			modelCenter,
@@ -137,10 +141,13 @@ export function player_object_collision(
 			transformedPverticesGrouped
 		);
 
-		if (playerPlaneNormal) return num_vec_multiply(-1, playerPlaneNormal);
+		if (playerPlaneNormal) {
+			modelCollisions.push(num_vec_multiply(-1, playerPlaneNormal));
+		}
 
 		g_index += 24 * 3;
 	}
 
+	if (modelCollisions.length) return modelCollisions;
 	return false;
 }

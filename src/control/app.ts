@@ -70,13 +70,15 @@ export class App {
 		this.scene.update(meshes, playerMesh);
 		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
 
-		const lastPosition: Vec3 = this.scene.camera.position;
+		const lastCamPosition: Vec3 = this.scene.camera.position;
+		this.scene.lastPlayerPos = this.scene.player.position;
+		this.scene.lastCamPosition = lastCamPosition;
 
 		this.scene.move_player_FB(this.moveVec[0]);
 		this.scene.move_player_LR(this.moveVec[1]);
 
 		// Get distance/direction moved vector from last frame
-		const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastPosition);
+		const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastCamPosition);
 		this.scene.moveDeltaVector = moveDeltaVector;
 
 		if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0) {

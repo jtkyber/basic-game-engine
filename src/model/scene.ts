@@ -1,7 +1,7 @@
 import { Vec3, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { player_object_collision } from '../utils/collisions';
-import { dot, num_vec_multiply } from '../utils/math_stuff';
+import { dot, num_vec_multiply, vec3_mean } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';
 import { Floor } from './floor';
@@ -22,6 +22,8 @@ export class Scene {
 	moveDeltaVector: Vec3;
 	camDistFromPlayer: number;
 	camHeightAbovePlayer: number;
+	lastPlayerPos: Vec3;
+	lastCamPosition: Vec3;
 
 	constructor(objectImages: string[], boundingBoxNames: string[]) {
 		this.objectImages = objectImages;
@@ -62,6 +64,9 @@ export class Scene {
 
 		let i: number = 0;
 		let b_index: number = 0;
+		let offsetVec: Vec3 = [];
+		let collisionCount: number = 0;
+
 		for (let n: number = 0; n < this.objectImages.length; n++) {
 			const name: string = this.objectImages[n].split('.')[0];
 
@@ -85,7 +90,7 @@ export class Scene {
 				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
 				const modelVerticesgrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
 
-				const contactPlaneNormal: Vec3 | false = player_object_collision(
+				const contactPlaneNormals: Vec3[] | false = player_object_collision(
 					playerBoundingVerticesInitial,
 					playerBoundingVerticesGrouped,
 					playerTransform,
@@ -94,23 +99,40 @@ export class Scene {
 					modelTransorm
 				);
 
-				if (contactPlaneNormal) {
+				if (contactPlaneNormals) {
 					// Maybe check if player is colliding with more than one
 					// cuboid, and if so, average the offset vectors.
 
 					// Then, check intersection along z (vertical) axis for top planes of each intersected
 					// cuboid and check if bottom z of player is close enough,
 					// then match player height to highest possible cuboid
-					if (dot(this.moveDeltaVector, contactPlaneNormal) <= 0) {
-						const offsetVec: Vec3 = num_vec_multiply(
-							dot(this.moveDeltaVector, contactPlaneNormal) / 1,
-							contactPlaneNormal
-						);
-						this.offset_player(offsetVec, -1);
+
+					for (let k: number = 0; k < contactPlaneNormals.length; k++) {
+						if (dot(this.moveDeltaVector, contactPlaneNormals[k]) <= 0) {
+							// If pointing towards the plane
+							// Get vector offset along plane normal
+							const offsetVecCur: Vec3 = num_vec_multiply(
+								dot(this.moveDeltaVector, contactPlaneNormals[k]) / 1,
+								contactPlaneNormals[k]
+							);
+							collisionCount++;
+							offsetVec = offsetVecCur;
+						}
 					}
 				}
 				b_index++;
 			}
+		}
+
+		if (collisionCount === 1) {
+			const offsetVecMean: Vec3 = offsetVec;
+			this.offset_player(offsetVecMean, -1);
+		} else if (collisionCount > 1) {
+			this.player.position[0] = this.lastPlayerPos[0];
+			this.player.position[1] = this.lastPlayerPos[1];
+
+			this.camera.position[0] = this.lastCamPosition[0];
+			this.camera.position[1] = this.lastCamPosition[1];
 		}
 
 		this.camera.update();

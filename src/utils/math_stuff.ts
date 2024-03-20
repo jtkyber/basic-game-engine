@@ -64,3 +64,18 @@ export function num_vec_multiply(a: number, b: Vec3): Vec3 {
 export function num_divide_by_vec(a: number, b: Vec3): Vec3 {
 	return [a / b[0], a / b[1], a / b[2]];
 }
+
+export function vec3_mean(vecs: Vec3[]): Vec3 {
+	const vecNum: number = vecs.length;
+	const newVec: Vec3 = vecs[0];
+
+	if (vecNum === 1) return newVec;
+
+	for (let i: number = 1; i < vecs.length; i++) {
+		newVec[0] += vecs[i][0];
+		newVec[1] += vecs[i][1];
+		newVec[2] += vecs[i][2];
+	}
+
+	return [newVec[0] / vecNum, newVec[1] / vecNum, newVec[2] / vecNum];
+}
