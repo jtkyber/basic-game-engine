@@ -1,7 +1,7 @@
-import { Mat4, Vec3, Vec4, vec3 } from 'wgpu-matrix';
+import { Vec3, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { player_object_collision } from '../utils/collisions';
-import { dot, normalize, num_vec_multiply } from '../utils/math_stuff';
+import { dot, num_vec_multiply } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';
 import { Floor } from './floor';
@@ -37,9 +37,13 @@ export class Scene {
 		this.floor = new Floor([0, 0, 0], [0, 0, 0]);
 
 		this.camera = new Camera(
-			[this.player.position[0] - this.camDistFromPlayer, this.player.position[1], this.player.position[2]],
-			this.camHeightAbovePlayer,
-			-10
+			[
+				this.player.position[0] - this.camDistFromPlayer,
+				this.player.position[1],
+				this.player.position[2] + this.camHeightAbovePlayer,
+			],
+			0,
+			0
 		);
 	}
 
