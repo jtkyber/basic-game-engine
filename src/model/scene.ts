@@ -1,5 +1,6 @@
 import { Vec3, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
+import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
 import { dot, num_vec_multiply, vec3_mean } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
@@ -56,7 +57,9 @@ export class Scene {
 		const playerBoundingVerticesInitial: Float32Array = playerMesh.boundingBoxVerticesInitial;
 		const playerBoundingVerticesGrouped: Float32Array = playerMesh.boundingBoxVerticesGrouped;
 
+		this.player.apply_gravity();
 		this.player.update();
+
 		const playerTransform: Float32Array = new Float32Array(16);
 		for (let i = 0; i < 16; i++) {
 			playerTransform[i] = <number>this.player.get_model().at(i);
@@ -66,6 +69,8 @@ export class Scene {
 		let b_index: number = 0;
 		let offsetVec: Vec3 = [];
 		let collisionCount: number = 0;
+		let playerBoxZdeltas: number[] = [];
+		let counter = 0;
 
 		for (let n: number = 0; n < this.objectImages.length; n++) {
 			const name: string = this.objectImages[n].split('.')[0];
@@ -88,53 +93,74 @@ export class Scene {
 			if (hasBoundingBoxes && meshes[n].modelName !== 'player') {
 				const modelTransorm: Float32Array = this.objectData.slice(16 * b_index, 16 * b_index + 16);
 				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
-				const modelVerticesgrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
+				const modelVerticesGrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
 
-				const contactPlaneNormals: Vec3[] | false = player_object_collision(
+				const collisionData: ICollision[] | false = player_object_collision(
 					playerBoundingVerticesInitial,
 					playerBoundingVerticesGrouped,
 					playerTransform,
 					modelVerticesInitial,
-					modelVerticesgrouped,
+					modelVerticesGrouped,
 					modelTransorm
 				);
 
-				if (contactPlaneNormals) {
-					// Maybe check if player is colliding with more than one
-					// cuboid, and if so, average the offset vectors.
-
-					// Then, check intersection along z (vertical) axis for top planes of each intersected
-					// cuboid and check if bottom z of player is close enough,
-					// then match player height to highest possible cuboid
-
-					for (let k: number = 0; k < contactPlaneNormals.length; k++) {
-						if (dot(this.moveDeltaVector, contactPlaneNormals[k]) <= 0) {
+				if (collisionData) {
+					for (let k: number = 0; k < collisionData.length; k++) {
+						counter++;
+						if (dot(this.moveDeltaVector, collisionData[k].planeNormal) <= 0) {
 							// If pointing towards the plane
 							// Get vector offset along plane normal
 							const offsetVecCur: Vec3 = num_vec_multiply(
-								dot(this.moveDeltaVector, contactPlaneNormals[k]) / 1,
-								contactPlaneNormals[k]
+								dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
+								collisionData[k].planeNormal
 							);
 							collisionCount++;
 							offsetVec = offsetVecCur;
 						}
+						// Include playerBoxZdelta even if vector is facing away from plane
+						playerBoxZdeltas.push(collisionData[k].playerBoxZdelta);
 					}
 				}
 				b_index++;
 			}
 		}
 
-		if (collisionCount === 1) {
-			const offsetVecMean: Vec3 = offsetVec;
-			this.offset_player(offsetVecMean, -1);
-		} else if (collisionCount > 1) {
-			this.player.position[0] = this.lastPlayerPos[0];
-			this.player.position[1] = this.lastPlayerPos[1];
-
-			this.camera.position[0] = this.lastCamPosition[0];
-			this.camera.position[1] = this.lastCamPosition[1];
+		// Find max playerBoxZdelta from collisions that's within range
+		let maxStepUpHeight: number = 0;
+		const stepHeight: number = 0.25;
+		for (let j: number = 0; j < playerBoxZdeltas.length; j++) {
+			if (playerBoxZdeltas[j] > maxStepUpHeight && playerBoxZdeltas[j] < stepHeight) {
+				maxStepUpHeight = playerBoxZdeltas[j];
+			}
 		}
 
+		// Apply stepUp transformation
+		if (collisionCount === 1) {
+			const offsetVecMean: Vec3 = offsetVec;
+			if (playerBoxZdeltas[0] > 0 && playerBoxZdeltas[0] < stepHeight) {
+				this.player.position[2] += maxStepUpHeight;
+				this.player.reset_gravity();
+			} else {
+				this.offset_player(offsetVecMean, -1);
+			}
+		} else if (collisionCount > 1) {
+			if (playerBoxZdeltas[0] > 0 && playerBoxZdeltas[0] < stepHeight) {
+				this.player.position[2] += maxStepUpHeight;
+				this.player.reset_gravity();
+			} else {
+				this.player.position[0] = this.lastPlayerPos[0];
+				this.player.position[1] = this.lastPlayerPos[1];
+
+				this.camera.position[0] = this.lastCamPosition[0];
+				this.camera.position[1] = this.lastCamPosition[1];
+			}
+		} else if (playerBoxZdeltas.length && playerBoxZdeltas[0] > 0 && playerBoxZdeltas[0] < stepHeight) {
+			this.player.position[2] += maxStepUpHeight;
+			this.player.reset_gravity();
+		}
+
+		this.spin_player(0, 0);
+		this.player.update();
 		this.camera.update();
 	}
 

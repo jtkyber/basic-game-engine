@@ -1,4 +1,5 @@
 import { Vec3 } from 'wgpu-matrix';
+import { ICollision } from '../types/types';
 import { dot, normalize, num_vec_multiply, vecA_minus_vecB } from './math_stuff';
 import { one_four_by_four_four } from './matrices';
 
@@ -38,7 +39,7 @@ function line_plane_collision_test(
 		for (let j: number = 0; j < objVertices2.length; j += 12) {
 			// Iterate planes
 
-			// Only need 3 verts (v1/v2/v4) to calculate plane normal
+			// Only need 3 verts (v1/v2/v3) to calculate plane normal
 			const v1: Vec3 = [objVertices2[j], objVertices2[j + 1], objVertices2[j + 2]];
 			const v2: Vec3 = [objVertices2[j + 3], objVertices2[j + 4], objVertices2[j + 5]];
 			const v3: Vec3 = [objVertices2[j + 6], objVertices2[j + 7], objVertices2[j + 8]];
@@ -54,8 +55,8 @@ function line_plane_collision_test(
 				v3[0] * (v1[1] * v2[2] - v2[1] * v1[2]);
 
 			// Plane intersection equation
-			const tNumer: number = -(nA * center[0] + nB * center[1] + nC * center[2] + d);
-			const tDenom: number = nA * diagVector[0] + nB * diagVector[1] + nC * diagVector[1];
+			const tNumer: number = nA * center[0] + nB * center[1] + nC * center[2] + d;
+			const tDenom: number = nA * diagVector[0] + nB * diagVector[1] + nC * diagVector[2];
 			const t: number = tNumer / tDenom;
 
 			if (t >= 0 && t <= 1) {
@@ -80,10 +81,7 @@ function line_plane_collision_test(
 				const dot3: number = dot(intersectionN3, vec3N);
 				const dot4: number = dot(intersectionN4, vec4N);
 
-				if (dot1 <= 0 && dot2 <= 0 && dot3 <= 0 && dot4 <= 0) {
-					// const offsetVec: Vec3 = vecA_minus_vecB(diagVertex, intersection);
-					return normalize([nA, nB, nC]);
-				}
+				if (dot1 <= 0 && dot2 <= 0 && dot3 <= 0 && dot4 <= 0) return normalize([nA, nB, nC]);
 			}
 		}
 	}
@@ -98,18 +96,23 @@ export function player_object_collision(
 	modelVertices: Float32Array,
 	modelVerticesGrouped: Float32Array,
 	modelTransform: Float32Array
-): Vec3[] | false {
+): ICollision[] | false {
 	const transformedPvertices: Float32Array = get_transformed_cuboid_vertices(pVertices, playerTransform);
 	const transformedPverticesGrouped: Float32Array = get_transformed_cuboid_vertices(
 		pVerticesGrouped,
 		playerTransform
 	);
 	const playerCenter: Vec3 = get_cuboid_center(transformedPvertices);
+	let playerZBottom: number = Infinity;
+	for (let j: number = 0; j < transformedPvertices.length; j += 3) {
+		if (transformedPvertices[j + 2] < playerZBottom) playerZBottom = transformedPvertices[j + 2];
+	}
 
-	const modelCollisions: Vec3[] = [];
+	const collisionData: ICollision[] = [];
 
 	let g_index: number = 0;
 	for (let i: number = 0; i < modelVertices.length; i += 24) {
+		let boxZTop: number = 0;
 		// Check each bounding box for current model
 		const transformedMvertices: Float32Array = get_transformed_cuboid_vertices(
 			modelVertices.slice(i, i + 24),
@@ -132,22 +135,36 @@ export function player_object_collision(
 		);
 
 		if (objectPlaneNormal) {
-			modelCollisions.push(objectPlaneNormal);
-		}
+			for (let j: number = 0; j < transformedMvertices.length; j += 3) {
+				if (transformedMvertices[j + 2] > boxZTop) boxZTop = transformedMvertices[j + 2];
+			}
 
-		const playerPlaneNormal: Vec3 | false = line_plane_collision_test(
-			modelCenter,
-			transformedMvertices,
-			transformedPverticesGrouped
-		);
+			collisionData.push({
+				planeNormal: objectPlaneNormal,
+				playerBoxZdelta: boxZTop - playerZBottom,
+			});
+		} else {
+			const playerPlaneNormal: Vec3 | false = line_plane_collision_test(
+				modelCenter,
+				transformedMvertices,
+				transformedPverticesGrouped
+			);
 
-		if (playerPlaneNormal) {
-			modelCollisions.push(num_vec_multiply(-1, playerPlaneNormal));
+			if (playerPlaneNormal) {
+				for (let j: number = 0; j < transformedMvertices.length; j += 3) {
+					if (transformedMvertices[j + 2] > boxZTop) boxZTop = transformedMvertices[j + 2];
+				}
+
+				collisionData.push({
+					planeNormal: num_vec_multiply(-1, playerPlaneNormal),
+					playerBoxZdelta: boxZTop - playerZBottom,
+				});
+			}
 		}
 
 		g_index += 24 * 3;
 	}
 
-	if (modelCollisions.length) return modelCollisions;
+	if (collisionData.length) return collisionData;
 	return false;
 }

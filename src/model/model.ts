@@ -4,11 +4,15 @@ export class Model {
 	position: Vec3;
 	eulers: Vec3;
 	model: Mat4;
+	gravitySpd: number;
+	gravityAcc: number;
 
 	constructor(position: Vec3, eulers: Vec3) {
 		this.position = position;
 		// Angle of rotation on each axis (I think)
 		this.eulers = eulers;
+		this.gravitySpd = 1;
+		this.gravityAcc = 0.005;
 	}
 
 	get_model(): Mat4 {
@@ -17,5 +21,18 @@ export class Model {
 
 	set_rotation(rot: number, i: number): void {
 		this.eulers[i] = rot;
+	}
+
+	reset_gravity() {
+		this.gravityAcc = 0.01;
+	}
+
+	apply_gravity() {
+		this.gravityAcc += 0.01;
+		this.position[2] -= this.gravitySpd * this.gravityAcc;
+		if (this.position[2] < 0) {
+			this.position[2] = 0;
+			this.reset_gravity();
+		}
 	}
 }

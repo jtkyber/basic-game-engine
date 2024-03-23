@@ -136,15 +136,19 @@ export class Renderer {
 
 		this.triangleMesh = new TriangleMesh(this.device);
 
+		let b_index: number = 0;
 		for (let i: number = 0; i < this.objectImages.length; i++) {
 			const modelName = this.objectImages[i].split('.')[0];
 
 			this.objectMeshes[i] = new ObjMesh(this.device);
 			await this.objectMeshes[i].initialize(`dist/models/${modelName}.obj`);
+			console.log('Parsing model', i);
 			this.objectMeshes[i].set_model_name(modelName);
 
 			if (this.boundingBoxNames.includes(modelName)) {
 				await this.objectMeshes[i].generate_bounding_boxes(`dist/boundingBoxes/${modelName}_b.obj`);
+				console.log('Parsing bounding box', b_index);
+				b_index++;
 			}
 
 			this.objectMaterials[i] = new Material();
