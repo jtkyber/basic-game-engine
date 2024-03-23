@@ -4,3 +4,9 @@ export interface ICollision {
 	planeNormal: Vec3;
 	playerBoxZdelta: number;
 }
+
+declare global {
+	interface Window {
+		myLib: any;
+	}
+}

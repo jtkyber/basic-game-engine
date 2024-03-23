@@ -12,15 +12,12 @@ export class App {
 	collisionDebug: boolean;
 	scene: Scene;
 	keysPressed: string[];
-	moveAmtFB: number;
-	moveAmtLR: number;
 	moveVec: Vec2;
 	timeStamp: number;
-	deltaTimes: number[];
 	fpsValue: string;
-	fpsAvg: number;
-	i: number;
 	pointerLocked: boolean;
+	maxFramerate: number;
+	loopWaitTime: number;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
@@ -29,10 +26,9 @@ export class App {
 		this.collisionDebug = false;
 		this.renderer = new Renderer(canvas, this.objectImages, this.boundingBoxNames, this.collisionDebug);
 		this.scene = new Scene(this.objectImages, this.boundingBoxNames);
-		this.fpsAvg = 0;
-		this.deltaTimes = [];
-		this.i = 0;
 		this.pointerLocked = false;
+		this.maxFramerate = 60;
+		this.loopWaitTime = (1 / this.maxFramerate) * 1000;
 
 		document.addEventListener('keydown', e => this.handleKeyDown(e));
 		document.addEventListener('keyup', e => this.handleKeyUp(e));
@@ -49,21 +45,17 @@ export class App {
 			false
 		);
 		this.keysPressed = [];
-		this.moveAmtFB = 0.1;
-		this.moveAmtLR = 0.1;
 		this.moveVec = [0, 0];
-
-		this.fpsValue = <string>document.getElementById('fps_counter')?.innerText;
 	}
 
 	async initialize() {
+		window.myLib = window.myLib || {};
+		window.myLib.deltaTime = 0;
 		await this.renderer.initialize();
 	}
 
-	run = () => {
+	run = async () => {
 		let running: boolean = true;
-
-		this.timeStamp = Date.now();
 
 		const meshes: ObjMesh[] = this.renderer.objectMeshes;
 		const playerMesh: ObjMesh = meshes.filter(m => m.modelName === 'player')[0];
@@ -80,43 +72,39 @@ export class App {
 		// Get distance/direction moved vector from last frame
 		const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastCamPosition);
 		this.scene.moveDeltaVector = moveDeltaVector;
+		this.scene.playerMoving = false;
 
 		if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0) {
+			this.scene.playerMoving = true;
 			this.scene.player.set_rotation(Math.atan2(moveDeltaVector[1], moveDeltaVector[0]) * (180 / Math.PI), 1);
 		}
+		(document.getElementById('fps_counter') as HTMLElement).innerText = (~~(
+			1000 / window.myLib.deltaTime
+		)).toString();
 
-		if (this.i >= 10) {
-			this.fpsAvg =
-				this.deltaTimes.reduce((acc: number, num: number) => acc + num, 0) / this.deltaTimes.length;
+		if (running) {
+			this.timeStamp = Date.now();
 
-			(document.getElementById('fps_counter') as HTMLElement).innerText =
-				'10% avg: ' + (~~this.fpsAvg).toString();
-
-			this.i = 0;
-			this.deltaTimes = [];
+			setTimeout(() => {
+				requestAnimationFrame(this.run);
+				window.myLib.deltaTime = Date.now() - this.timeStamp;
+			}, this.loopWaitTime);
 		}
-
-		this.deltaTimes.push(1000 / (Date.now() - this.timeStamp));
-		this.i++;
-
-		if (running) requestAnimationFrame(this.run);
 	};
-
-	handlePlayerTurn() {}
 
 	handleKeyDown(e: KeyboardEvent) {
 		if (!this.pointerLocked) return;
 
 		if (e.code === 'KeyW') {
-			this.moveVec[0] = this.moveAmtFB;
+			this.moveVec[0] = 1;
 		} else if (e.code === 'KeyS') {
-			this.moveVec[0] = -this.moveAmtFB;
+			this.moveVec[0] = -1;
 		}
 
 		if (e.code === 'KeyA') {
-			this.moveVec[1] = -this.moveAmtLR;
+			this.moveVec[1] = -1;
 		} else if (e.code === 'KeyD') {
-			this.moveVec[1] = this.moveAmtLR;
+			this.moveVec[1] = 1;
 		}
 	}
 

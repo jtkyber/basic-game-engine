@@ -6,6 +6,7 @@ export class Model {
 	model: Mat4;
 	gravitySpd: number;
 	gravityAcc: number;
+	moveVector: Vec3;
 
 	constructor(position: Vec3, eulers: Vec3) {
 		this.position = position;
@@ -13,6 +14,7 @@ export class Model {
 		this.eulers = eulers;
 		this.gravitySpd = 1;
 		this.gravityAcc = 0.005;
+		this.moveVector = [0, 0, 0];
 	}
 
 	get_model(): Mat4 {

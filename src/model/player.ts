@@ -6,9 +6,11 @@ export class Player extends Model {
 	position: Vec3;
 	eulers: Vec3;
 	model: Mat4;
+	moveSpeed: number;
 
 	constructor(position: Vec3, eulers: Vec3) {
 		super(position, eulers);
+		this.moveSpeed = 0.01;
 	}
 
 	update() {
