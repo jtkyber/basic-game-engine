@@ -86,7 +86,7 @@ export class ObjMesh {
 	async initialize(url: string) {
 		// prettier-ignore
 		await this.read_file(url)
-		this.vertexCount = this.vertices.length / 5;
+		this.vertexCount = this.vertices.length / 8;
 
 		this.buffer = this.device.createBuffer({
 			size: this.vertices.byteLength,
@@ -98,7 +98,7 @@ export class ObjMesh {
 		this.buffer.unmap();
 
 		this.bufferLayout = {
-			arrayStride: 20,
+			arrayStride: 32,
 			attributes: [
 				// For the position
 				{
@@ -111,6 +111,12 @@ export class ObjMesh {
 					shaderLocation: 1,
 					format: 'float32x2',
 					offset: 12,
+				},
+				// For the face normals
+				{
+					shaderLocation: 2,
+					format: 'float32x3',
+					offset: 20,
 				},
 			],
 		};
@@ -180,7 +186,6 @@ export class ObjMesh {
 		// What we have: ['f', v1, v2, ...]
 		// Number of triangles = # of vertices - 2 (-3 here because of the 'f' element)
 		const triangleCount = vertexDescriptions.length - 3;
-		// console.log(triangleCount);
 
 		for (let i = 0; i < triangleCount; i++) {
 			this.read_corner(vertexDescriptions[1], result);
@@ -193,6 +198,7 @@ export class ObjMesh {
 		const v_vt_vn = vertexDescription.split('/');
 		const v = this.v[Number(v_vt_vn[0]) - 1];
 		const vt = this.vt[Number(v_vt_vn[1]) - 1];
+		const vn = this.vn[Number(v_vt_vn[2]) - 1];
 		// Can add in vn if wanted later
 		res.push(v[0]);
 		res.push(v[1]);
@@ -201,6 +207,12 @@ export class ObjMesh {
 		if (vt) {
 			res.push(vt[0]);
 			res.push(vt[1]);
+		}
+
+		if (vn) {
+			res.push(vn[0]);
+			res.push(vn[1]);
+			res.push(vn[2]);
 		}
 	}
 

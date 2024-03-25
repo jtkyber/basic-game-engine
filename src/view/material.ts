@@ -2,9 +2,15 @@ export class Material {
 	texture: GPUTexture;
 	view: GPUTextureView;
 	sampler: GPUSampler;
+	depthSampler: GPUSampler;
 	bindGroup: GPUBindGroup;
 
-	async initialize(device: GPUDevice, url: string, bindGroupLayout: GPUBindGroupLayout) {
+	async initialize(
+		device: GPUDevice,
+		url: string,
+		bindGroupLayout: GPUBindGroupLayout,
+		depthStencilView: GPUTextureView
+	) {
 		const res: Response = await fetch(url);
 		const blob: Blob = await res.blob();
 		const imageData: ImageBitmap = await createImageBitmap(blob);
@@ -33,6 +39,17 @@ export class Material {
 		};
 		this.sampler = device.createSampler(samplerDescriptor);
 
+		const depthSamplerDescritor: GPUSamplerDescriptor = {
+			addressModeU: 'repeat',
+			addressModeV: 'repeat',
+			magFilter: 'linear',
+			minFilter: 'nearest',
+			mipmapFilter: 'linear',
+			maxAnisotropy: 1,
+			compare: 'less-equal',
+		};
+		this.depthSampler = device.createSampler(depthSamplerDescritor);
+
 		this.bindGroup = device.createBindGroup({
 			layout: bindGroupLayout,
 			entries: [
@@ -43,6 +60,14 @@ export class Material {
 				{
 					binding: 1,
 					resource: this.sampler,
+				},
+				{
+					binding: 2,
+					resource: depthStencilView,
+				},
+				{
+					binding: 3,
+					resource: this.depthSampler,
 				},
 			],
 		});

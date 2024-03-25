@@ -62,6 +62,7 @@ export class Renderer {
 	// Depth Stencil Stuff
 	depthStencilState: GPUDepthStencilState;
 	depthStencilBuffer: GPUTexture;
+	depthView: GPUTextureView;
 	depthStencilView: GPUTextureView;
 	depthStencilAttachment: GPURenderPassDepthStencilAttachment;
 
@@ -85,8 +86,8 @@ export class Renderer {
 	async initialize() {
 		await this.setupDevice();
 		await this.makeBindGroupLayouts();
-		await this.createAssets();
 		await this.makeDepthBufferResources();
+		await this.createAssets();
 		await this.makePipelines();
 		await this.makeBindGroup();
 	}
@@ -155,13 +156,14 @@ export class Renderer {
 			await this.objectMaterials[i].initialize(
 				this.device,
 				`dist/img/${this.objectImages[i]}`,
-				this.materialBindGroupLayout
+				this.materialBindGroupLayout,
+				this.depthView
 			);
 		}
 	}
 	async makeDepthBufferResources() {
 		this.depthStencilState = {
-			format: 'depth24plus-stencil8',
+			format: 'depth24plus',
 			depthWriteEnabled: true,
 			depthCompare: 'less-equal',
 		};
@@ -173,14 +175,25 @@ export class Renderer {
 		};
 		this.depthStencilBuffer = this.device.createTexture({
 			size: size,
-			format: 'depth24plus-stencil8',
-			usage: GPUTextureUsage.RENDER_ATTACHMENT,
+			format: 'depth24plus',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+		});
+
+		const depthBuffer = this.device.createTexture({
+			size: size,
+			format: 'depth24plus',
+			usage: GPUTextureUsage.TEXTURE_BINDING,
 		});
 
 		this.depthStencilView = this.depthStencilBuffer.createView({
-			format: 'depth24plus-stencil8',
+			format: 'depth24plus',
 			dimension: '2d',
-			aspect: 'all',
+			aspect: 'depth-only',
+		});
+		this.depthView = depthBuffer.createView({
+			format: 'depth24plus',
+			dimension: '2d',
+			aspect: 'depth-only',
 		});
 
 		this.depthStencilAttachment = {
@@ -188,8 +201,6 @@ export class Renderer {
 			depthClearValue: 1.0,
 			depthLoadOp: 'clear',
 			depthStoreOp: 'store',
-			stencilLoadOp: 'clear',
-			stencilStoreOp: 'discard',
 		};
 	}
 
@@ -249,6 +260,22 @@ export class Renderer {
 					binding: 1,
 					visibility: GPUShaderStage.FRAGMENT,
 					sampler: {},
+				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.FRAGMENT,
+					texture: {
+						sampleType: 'depth',
+						viewDimension: '2d',
+						multisampled: false,
+					},
+				},
+				{
+					binding: 3,
+					visibility: GPUShaderStage.FRAGMENT,
+					sampler: {
+						type: 'comparison',
+					},
 				},
 			],
 		});
@@ -310,7 +337,7 @@ export class Renderer {
 				module: this.shaderModule,
 				entryPoint: 'v_main',
 				// Same buffer layout for all object types
-				buffers: [this.triangleMesh.bufferLayout],
+				buffers: [this.objectMeshes[0].bufferLayout],
 			},
 			fragment: {
 				module: this.shaderModule,

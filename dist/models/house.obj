@@ -1,5 +1,6 @@
 # Blender 4.0.2
 # www.blender.org
+mtllib house.mtl
 o Cottage_Free
 v 8.819618 -7.079683 0.004652
 v 5.809757 -7.079683 0.004652
@@ -6256,6 +6257,8 @@ vt 0.292157 0.729552
 vt 0.025962 0.730914
 vt 0.291074 0.730897
 s 1
+g Cottage_Free_Cottage_FREE.001
+usemtl Cottage_FREE.001
 f 5/1/1 42/2/1 45/3/1 6/4/1
 f 42/5/2 94/6/2 95/7/2 43/8/2
 f 6/4/1 45/3/1 3/9/1
