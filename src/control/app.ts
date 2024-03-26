@@ -2,13 +2,13 @@ import { Vec2, Vec3 } from 'wgpu-matrix';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
+import { objectData } from '../view/objects';
 import { Renderer } from '../view/renderer';
 
 export class App {
 	canvas: HTMLCanvasElement;
+	objectNames: string[];
 	renderer: Renderer;
-	objectImages: string[];
-	boundingBoxNames: string[];
 	collisionDebug: boolean;
 	scene: Scene;
 	keysPressed: string[];
@@ -21,11 +21,10 @@ export class App {
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
-		this.objectImages = ['house.png', 'spaceship.jpg', 'player.jpg', 'floor.jpg'];
-		this.boundingBoxNames = ['house', 'spaceship', 'player'];
+		this.objectNames = Object.keys(objectData);
 		this.collisionDebug = false;
-		this.renderer = new Renderer(canvas, this.objectImages, this.boundingBoxNames, this.collisionDebug);
-		this.scene = new Scene(this.objectImages, this.boundingBoxNames);
+		this.renderer = new Renderer(canvas, objectData, this.objectNames, this.collisionDebug);
+		this.scene = new Scene(objectData, this.objectNames);
 		this.pointerLocked = false;
 		this.maxFramerate = 60;
 		this.loopWaitTime = (1 / this.maxFramerate) * 1000;

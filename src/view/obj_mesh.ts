@@ -21,6 +21,7 @@ export class ObjMesh {
 	vertexCount: number;
 	boundingBoxVertexCount: number;
 	modelName: string;
+	materialIndeces: number;
 
 	constructor(device: GPUDevice) {
 		this.device = device;
@@ -28,6 +29,7 @@ export class ObjMesh {
 		this.vt = [];
 		this.vn = [];
 		this.vb = [];
+		this.materialIndeces = 0;
 	}
 
 	set_model_name(name: string) {

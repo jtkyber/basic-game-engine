@@ -3,14 +3,15 @@ import { RenderData } from '../definitions';
 import { degToRad } from '../utils/math_stuff';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
+import { IObject, IObjectData } from './objects';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';
 import shader from './shaders/shader.wgsl';
 import { TriangleMesh } from './triangle_mesh';
 
 export class Renderer {
 	// Objects
-	objectImages: string[];
-	boundingBoxNames: string[];
+	objectData: IObjectData;
+	objectNames: string[];
 	collisionDebug: boolean;
 
 	// Canvas Stuff
@@ -32,6 +33,7 @@ export class Renderer {
 	objectBuffer: GPUBuffer;
 	boundingBoxBuffer: GPUBuffer;
 	playerPosBuffer: GPUBuffer;
+	vpDimensionBuffer: GPUBuffer;
 
 	frameBindGroupLayout: GPUBindGroupLayout;
 	boundingBoxBindGroupLayout: GPUBindGroupLayout;
@@ -68,12 +70,12 @@ export class Renderer {
 
 	constructor(
 		canvas: HTMLCanvasElement,
-		objectImages: string[],
-		boundingBoxNames: string[],
+		objectData: IObjectData,
+		objectNames: string[],
 		collisionDebug: boolean
 	) {
-		this.objectImages = objectImages;
-		this.boundingBoxNames = boundingBoxNames;
+		this.objectData = objectData;
+		this.objectNames = objectNames;
 		this.collisionDebug = collisionDebug;
 		this.canvas = canvas;
 		this.context = <GPUCanvasContext>canvas.getContext('webgpu');
@@ -121,8 +123,12 @@ export class Renderer {
 		});
 
 		this.playerPosBuffer = this.device.createBuffer({
-			// values in a 4x4 matrix * bytes per value * # of matrices
 			size: 4 * 3,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		this.vpDimensionBuffer = this.device.createBuffer({
+			size: 4 * 2,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
@@ -138,15 +144,16 @@ export class Renderer {
 		this.triangleMesh = new TriangleMesh(this.device);
 
 		let b_index: number = 0;
-		for (let i: number = 0; i < this.objectImages.length; i++) {
-			const modelName = this.objectImages[i].split('.')[0];
+		for (let i: number = 0; i < this.objectNames.length; i++) {
+			const modelName = this.objectNames[i];
+			const object: IObject = this.objectData[modelName];
 
 			this.objectMeshes[i] = new ObjMesh(this.device);
-			await this.objectMeshes[i].initialize(`dist/models/${modelName}.obj`);
+			await this.objectMeshes[i].initialize(`dist/models/${modelName}/${modelName}.obj`);
 			console.log('Parsing model', i);
 			this.objectMeshes[i].set_model_name(modelName);
 
-			if (this.boundingBoxNames.includes(modelName)) {
+			if (object.hasBoundingBox) {
 				await this.objectMeshes[i].generate_bounding_boxes(`dist/boundingBoxes/${modelName}_b.obj`);
 				console.log('Parsing bounding box', b_index);
 				b_index++;
@@ -155,7 +162,7 @@ export class Renderer {
 			this.objectMaterials[i] = new Material();
 			await this.objectMaterials[i].initialize(
 				this.device,
-				`dist/img/${this.objectImages[i]}`,
+				`dist/img/${modelName}/${object.images[0]}`,
 				this.materialBindGroupLayout,
 				this.depthView
 			);
@@ -165,7 +172,7 @@ export class Renderer {
 		this.depthStencilState = {
 			format: 'depth24plus',
 			depthWriteEnabled: true,
-			depthCompare: 'less-equal',
+			depthCompare: 'less',
 		};
 
 		const size: GPUExtent3D = {
@@ -176,13 +183,15 @@ export class Renderer {
 		this.depthStencilBuffer = this.device.createTexture({
 			size: size,
 			format: 'depth24plus',
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 
 		const depthBuffer = this.device.createTexture({
 			size: size,
 			format: 'depth24plus',
 			usage: GPUTextureUsage.TEXTURE_BINDING,
+			mipLevelCount: 1,
+			sampleCount: 1,
 		});
 
 		this.depthStencilView = this.depthStencilBuffer.createView({
@@ -223,6 +232,11 @@ export class Renderer {
 				{
 					binding: 2,
 					visibility: GPUShaderStage.VERTEX,
+					buffer: {},
+				},
+				{
+					binding: 3,
+					visibility: GPUShaderStage.FRAGMENT,
 					buffer: {},
 				},
 			],
@@ -301,6 +315,12 @@ export class Renderer {
 					binding: 2,
 					resource: {
 						buffer: this.playerPosBuffer,
+					},
+				},
+				{
+					binding: 3,
+					resource: {
+						buffer: this.vpDimensionBuffer,
 					},
 				},
 			],
@@ -432,6 +452,11 @@ export class Renderer {
 		this.device.queue.writeBuffer(this.uniformBuffer, 64, <ArrayBuffer>projection);
 
 		this.device.queue.writeBuffer(this.playerPosBuffer, 0, <ArrayBuffer>new Float32Array(cameraPosition));
+		this.device.queue.writeBuffer(
+			this.vpDimensionBuffer,
+			0,
+			<ArrayBuffer>new Float32Array([this.canvas.width, this.canvas.height])
+		);
 
 		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
 		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();
@@ -440,7 +465,7 @@ export class Renderer {
 				{
 					view: this.view,
 					loadOp: 'clear',
-					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+					// clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
 					storeOp: 'store',
 				},
 			],
@@ -453,7 +478,7 @@ export class Renderer {
 		let objectsDrawn: number = 0;
 
 		// Models
-		for (let i: number = 0; i < this.objectImages.length; i++) {
+		for (let i: number = 0; i < this.objectNames.length; i++) {
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
 			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
 			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);
@@ -466,10 +491,11 @@ export class Renderer {
 
 			// Bounding Boxes
 			let b_index: number = 0;
-			for (let i: number = 0; i < this.objectImages.length; i++) {
-				const modelName: string = this.objectImages[i].split('.')[0];
+			for (let i: number = 0; i < this.objectNames.length; i++) {
+				const modelName: string = this.objectNames[i];
+				const object: IObject = this.objectData[modelName];
 
-				if (this.boundingBoxNames.includes(modelName)) {
+				if (object.hasBoundingBox) {
 					this.renderPass.setVertexBuffer(0, this.objectMeshes[i].boundingBoxBuffer);
 					this.renderPass.draw(this.objectMeshes[i].boundingBoxVertexCount, 1, 0, b_index);
 					b_index++;

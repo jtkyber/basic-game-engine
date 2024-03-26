@@ -39,12 +39,22 @@ export class Material {
 		};
 		this.sampler = device.createSampler(samplerDescriptor);
 
+		// const depthSamplerDescritor: GPUSamplerDescriptor = {
+		// 	addressModeU: 'repeat',
+		// 	addressModeV: 'repeat',
+		// 	magFilter: 'linear',
+		// 	minFilter: 'nearest',
+		// 	mipmapFilter: 'linear',
+		// 	maxAnisotropy: 1,
+		// 	compare: 'less-equal',
+		// };
 		const depthSamplerDescritor: GPUSamplerDescriptor = {
-			addressModeU: 'repeat',
-			addressModeV: 'repeat',
+			addressModeU: 'clamp-to-edge',
+			addressModeV: 'clamp-to-edge',
+			addressModeW: 'clamp-to-edge',
 			magFilter: 'linear',
-			minFilter: 'nearest',
-			mipmapFilter: 'linear',
+			minFilter: 'linear',
+			mipmapFilter: 'nearest',
 			maxAnisotropy: 1,
 			compare: 'less-equal',
 		};
@@ -81,7 +91,7 @@ export class Material {
 			},
 			format: 'rgba8unorm',
 			// Texture not always used as a render attachment
-			// but webGPU sometimes requires that usage flat
+			// but webGPU sometimes requires that usage flag
 			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
 		};
 

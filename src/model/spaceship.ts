@@ -17,7 +17,7 @@ export class Spaceship extends Model {
 		this.model = mat4.create();
 		// v: the vector you are translating by
 		mat4.translation(this.position, this.model);
-		this.position[1] += this.moveVector[1] * window.myLib.deltaTime;
+		// this.position[1] += this.moveVector[1] * window.myLib.deltaTime;
 		// axis: the axis you are rotating around
 		// angleInRadians: The angle you are rotating by
 		mat4.rotateZ(this.model, degToRad(90), this.model);

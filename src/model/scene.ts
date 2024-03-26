@@ -2,8 +2,9 @@ import { Vec3, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
-import { dot, num_vec_multiply, vec3_mean, vecAdd } from '../utils/math_stuff';
+import { dot, num_vec_multiply, vecAdd } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
+import { IObject, IObjectData } from '../view/objects';
 import { Camera } from './camera';
 import { Floor } from './floor';
 import { House } from './house';
@@ -11,14 +12,14 @@ import { Player } from './player';
 import { Spaceship } from './spaceship';
 
 export class Scene {
-	objectImages: string[];
-	boundingBoxNames: string[];
+	objectData: IObjectData;
+	objectNames: string[];
 	spaceship: Spaceship;
 	house: House;
 	player: Player;
 	floor: Floor;
 	camera: Camera;
-	objectData: Float32Array;
+	modelData: Float32Array;
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
 	camDistFromPlayer: number;
@@ -27,10 +28,10 @@ export class Scene {
 	lastCamPosition: Vec3;
 	playerMoving: boolean;
 
-	constructor(objectImages: string[], boundingBoxNames: string[]) {
-		this.objectImages = objectImages;
-		this.boundingBoxNames = boundingBoxNames;
-		this.objectData = new Float32Array(16 * 4);
+	constructor(objectData: IObjectData, objectNames: string[]) {
+		this.objectData = objectData;
+		this.objectNames = objectNames;
+		this.modelData = new Float32Array(16 * 4);
 		this.boundingBoxData = new Float32Array(16 * 3);
 		this.camDistFromPlayer = 2.5;
 		this.camHeightAbovePlayer = 0.5;
@@ -74,26 +75,25 @@ export class Scene {
 		let playerBoxZdeltas: number[] = [];
 		let counter = 0;
 
-		for (let n: number = 0; n < this.objectImages.length; n++) {
-			const name: string = this.objectImages[n].split('.')[0];
+		for (let n: number = 0; n < this.objectNames.length; n++) {
+			const name: string = this.objectNames[n].split('.')[0];
+			const object: IObject = this.objectData[name];
 
 			(this as any)[name].update();
 			let model2 = (this as any)[name].get_model();
 
-			const hasBoundingBoxes = this.boundingBoxNames.includes(name);
-
 			for (let j: number = 0; j < 16; j++) {
-				// Fill objectData with the model matrices for all the quads
-				this.objectData[16 * i + j] = <number>model2.at(j);
-				if (hasBoundingBoxes) {
+				// Fill modelData with the model matrices for all the quads
+				this.modelData[16 * i + j] = <number>model2.at(j);
+				if (object.hasBoundingBox) {
 					this.boundingBoxData[16 * b_index + j] = <number>model2.at(j);
 				}
 			}
 
 			i++;
 
-			if (hasBoundingBoxes && meshes[n].modelName !== 'player') {
-				const modelTransorm: Float32Array = this.objectData.slice(16 * b_index, 16 * b_index + 16);
+			if (object.hasBoundingBox && meshes[n].modelName !== 'player') {
+				const modelTransorm: Float32Array = this.modelData.slice(16 * b_index, 16 * b_index + 16);
 				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
 				const modelVerticesGrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
 
@@ -196,7 +196,7 @@ export class Scene {
 	get_renderables(): RenderData {
 		return {
 			viewTransform: this.camera.get_view(),
-			modelTransforms: this.objectData,
+			modelTransforms: this.modelData,
 			boundingBoxTransforms: this.boundingBoxData,
 		};
 	}
