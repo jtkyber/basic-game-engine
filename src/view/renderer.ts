@@ -105,7 +105,7 @@ export class Renderer {
 		this.context.configure({
 			device: this.device,
 			format: this.format,
-			alphaMode: 'opaque',
+			alphaMode: 'premultiplied',
 		});
 	}
 
@@ -118,7 +118,7 @@ export class Renderer {
 
 		this.objectBuffer = this.device.createBuffer({
 			// values in a 4x4 matrix * bytes per value * # of matrices
-			size: 4 * (16 * 4),
+			size: 4 * (16 * this.objectNames.length),
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -143,26 +143,24 @@ export class Renderer {
 
 		this.triangleMesh = new TriangleMesh(this.device);
 
-		let b_index: number = 0;
 		for (let i: number = 0; i < this.objectNames.length; i++) {
 			const modelName = this.objectNames[i];
 			const object: IObject = this.objectData[modelName];
 
 			this.objectMeshes[i] = new ObjMesh(this.device);
-			await this.objectMeshes[i].initialize(`dist/models/${modelName}/${modelName}.obj`);
-			console.log('Parsing model', i);
+			console.log(i, `Parsing ${modelName} object`);
+			await this.objectMeshes[i].initialize(`dist/models/${modelName}/${modelName}`);
 			this.objectMeshes[i].set_model_name(modelName);
 
 			if (object.hasBoundingBox) {
+				console.log(i, `Parsing ${modelName} bounding box`);
 				await this.objectMeshes[i].generate_bounding_boxes(`dist/boundingBoxes/${modelName}_b.obj`);
-				console.log('Parsing bounding box', b_index);
-				b_index++;
 			}
 
 			this.objectMaterials[i] = new Material();
 			await this.objectMaterials[i].initialize(
 				this.device,
-				`dist/img/${modelName}/${object.images[0]}`,
+				this.objectMeshes[i].materialFilenames,
 				this.materialBindGroupLayout,
 				this.depthView
 			);
@@ -268,7 +266,9 @@ export class Renderer {
 				{
 					binding: 0,
 					visibility: GPUShaderStage.FRAGMENT,
-					texture: {},
+					texture: {
+						viewDimension: '2d-array',
+					},
 				},
 				{
 					binding: 1,
@@ -465,7 +465,7 @@ export class Renderer {
 				{
 					view: this.view,
 					loadOp: 'clear',
-					// clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
 					storeOp: 'store',
 				},
 			],

@@ -1,0 +1,52 @@
+# Blender 4.0.2 MTL File: 'None'
+# www.blender.org
+
+newmtl Material.002
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE.png
+map_Ns dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-SMOOTH.png
+
+newmtl Material.009_-_TWIGS.001
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd dist/img/tree/GenTree_1_Twigs_AE3D_03312023-A-DIFFUSE.png
+
+newmtl Material.010_-_Leaves.001
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_Kd dist/img/tree/Maple_AE3D_03272021-A2-50pc.png
+map_d dist/img/tree/Maple_AE3D_03272021-A2-50pc.png
+
+newmtl Material.011_-_Secondary_Limbs.001
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE.png
+map_Ns dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-SMOOTH.png
+
+newmtl Material.012_-_TRUNK.001
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE.png
+map_Ns dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-SMOOTH.png

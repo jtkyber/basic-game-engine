@@ -21,7 +21,13 @@ export class ObjMesh {
 	vertexCount: number;
 	boundingBoxVertexCount: number;
 	modelName: string;
-	materialIndeces: number;
+	currentMaterial: string;
+	materialFilenames: {
+		[id: string]: string;
+	};
+	materialIndeces: {
+		[id: string]: number;
+	};
 
 	constructor(device: GPUDevice) {
 		this.device = device;
@@ -29,7 +35,8 @@ export class ObjMesh {
 		this.vt = [];
 		this.vn = [];
 		this.vb = [];
-		this.materialIndeces = 0;
+		this.materialFilenames = {};
+		this.materialIndeces = {};
 	}
 
 	set_model_name(name: string) {
@@ -87,8 +94,9 @@ export class ObjMesh {
 
 	async initialize(url: string) {
 		// prettier-ignore
-		await this.read_file(url)
-		this.vertexCount = this.vertices.length / 8;
+		await this.read_mtl_file(url)
+		await this.read_obj_file(url);
+		this.vertexCount = this.vertices.length / 9;
 
 		this.buffer = this.device.createBuffer({
 			size: this.vertices.byteLength,
@@ -100,7 +108,7 @@ export class ObjMesh {
 		this.buffer.unmap();
 
 		this.bufferLayout = {
-			arrayStride: 32,
+			arrayStride: 36,
 			attributes: [
 				// For the position
 				{
@@ -114,21 +122,50 @@ export class ObjMesh {
 					format: 'float32x2',
 					offset: 12,
 				},
-				// For the face normals
+				// For the material indeces
 				{
 					shaderLocation: 2,
-					format: 'float32x3',
+					format: 'float32',
 					offset: 20,
+				},
+				// For the face normals
+				{
+					shaderLocation: 3,
+					format: 'float32x3',
+					offset: 24,
 				},
 			],
 		};
 	}
 
-	async read_file(url: string) {
+	async read_mtl_file(url: string) {
+		const file_contents = await fetch(`${url}.mtl`).then(res => res.text());
+		const lines = file_contents.split('\n');
+		let materialCount: number = 0;
+
+		lines.forEach(l => {
+			const words = l.trim().split(' ');
+			if (words[0] === 'newmtl') {
+				this.currentMaterial = words[1];
+			} else if (words[0] === 'map_Kd') {
+				const filenameValues: string[] = Object.values(this.materialFilenames);
+				if (filenameValues.includes(words[1])) {
+					// this.materialFilenames[this.currentMaterial] = words[1];
+					this.materialIndeces[this.currentMaterial] = filenameValues.indexOf(words[1]);
+				} else {
+					this.materialFilenames[this.currentMaterial] = words[1];
+					this.materialIndeces[this.currentMaterial] = materialCount;
+					materialCount++;
+				}
+			}
+		});
+	}
+
+	async read_obj_file(url: string) {
 		let result: number[] = [];
 		// Fetch object and split into array of strings
 		// where each new line is an element in the array
-		const file_contents = await fetch(url).then(res => res.text());
+		const file_contents = await fetch(`${url}.obj`).then(res => res.text());
 		const lines = file_contents.split('\n');
 
 		lines.forEach(l => {
@@ -139,6 +176,8 @@ export class ObjMesh {
 				this.read_texcoord_line(line);
 			} else if (line[0] === 'v' && line[1] === 'n') {
 				this.read_normal_line(line);
+			} else if (line.split(' ')[0] === 'usemtl') {
+				this.currentMaterial = line.split(' ')[1];
 			} else if (line[0] === 'f') {
 				this.read_face_line(line, result);
 			}
@@ -201,7 +240,7 @@ export class ObjMesh {
 		const v = this.v[Number(v_vt_vn[0]) - 1];
 		const vt = this.vt[Number(v_vt_vn[1]) - 1];
 		const vn = this.vn[Number(v_vt_vn[2]) - 1];
-		// Can add in vn if wanted later
+
 		res.push(v[0]);
 		res.push(v[1]);
 		res.push(v[2]);
@@ -209,6 +248,8 @@ export class ObjMesh {
 		if (vt) {
 			res.push(vt[0]);
 			res.push(vt[1]);
+			// res.push(0);
+			res.push(this.materialIndeces[this.currentMaterial]);
 		}
 
 		if (vn) {

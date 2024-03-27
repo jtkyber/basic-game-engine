@@ -10,7 +10,8 @@ struct ObjectData {
 struct VertIn {
     @location(0) vertexPosition: vec3f,
     @location(1) vertexTexCoord: vec2f,
-    @location(2) vertexNormal: vec3f,
+    @location(2) materialIndex: f32,
+    @location(3) vertexNormal: vec3f,
     @builtin(instance_index) instanceIndex: u32,
 };
 
@@ -19,7 +20,7 @@ struct VertOut {
     @location(0) TextCoord: vec2f,
     @location(1) playerPos: vec3f,
     @location(2) worldPos: vec4f,
-
+    @location(3) @interpolate(flat) materialIndex: u32,
 };
 
 struct FragOut {
@@ -36,7 +37,7 @@ const fogColor = vec3f(0.0, 0.0, 0.0);
 @group(0) @binding(3) var<uniform> viewport: vec2f;
 
 // Bound for each material
-@group(1) @binding(0) var myTexture: texture_2d<f32>;
+@group(1) @binding(0) var myTexture: texture_2d_array<f32>;
 @group(1) @binding(1) var mySampler: sampler;
 @group(1) @binding(2) var myDepthTexture: texture_depth_2d;
 @group(1) @binding(3) var myDepthSampler: sampler_comparison;
@@ -50,6 +51,7 @@ fn v_main(input: VertIn) -> VertOut {
     output.TextCoord = input.vertexTexCoord;
     output.playerPos = playerPosition.xyz;
     output.worldPos = vertWorlPos; 
+    output.materialIndex = u32(input.materialIndex);
 
     return output;
 }
@@ -58,7 +60,10 @@ fn v_main(input: VertIn) -> VertOut {
 fn f_main(input: VertOut) -> FragOut {
     var output: FragOut;
 
-    let textureColor = textureSample(myTexture, mySampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y));
+    let textureColor = textureSample(myTexture, mySampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), input.materialIndex);
+    if (textureColor.a == 0.0) {
+        discard;
+    }
 
     let distFromPlayer = abs(distance(input.worldPos.xyz, input.playerPos));
 

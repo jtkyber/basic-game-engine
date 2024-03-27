@@ -10,6 +10,7 @@ import { Floor } from './floor';
 import { House } from './house';
 import { Player } from './player';
 import { Spaceship } from './spaceship';
+import { Tree } from './tree';
 
 export class Scene {
 	objectData: IObjectData;
@@ -18,6 +19,7 @@ export class Scene {
 	house: House;
 	player: Player;
 	floor: Floor;
+	tree: Tree;
 	camera: Camera;
 	modelData: Float32Array;
 	boundingBoxData: Float32Array;
@@ -31,7 +33,7 @@ export class Scene {
 	constructor(objectData: IObjectData, objectNames: string[]) {
 		this.objectData = objectData;
 		this.objectNames = objectNames;
-		this.modelData = new Float32Array(16 * 4);
+		this.modelData = new Float32Array(16 * this.objectNames.length);
 		this.boundingBoxData = new Float32Array(16 * 3);
 		this.camDistFromPlayer = 2.5;
 		this.camHeightAbovePlayer = 0.5;
@@ -41,6 +43,7 @@ export class Scene {
 		this.spaceship = new Spaceship([0, -50, 1], [0, 0, 0]);
 		this.house = new House([13, -10, 0], [0, 0, 0]);
 		this.floor = new Floor([0, 0, 0], [0, 0, 0]);
+		this.tree = new Tree([10, 2, 0], [90, 0, 0]);
 
 		this.camera = new Camera(
 			[
@@ -76,24 +79,22 @@ export class Scene {
 		let counter = 0;
 
 		for (let n: number = 0; n < this.objectNames.length; n++) {
-			const name: string = this.objectNames[n].split('.')[0];
+			const name: string = this.objectNames[n];
 			const object: IObject = this.objectData[name];
 
 			(this as any)[name].update();
-			let model2 = (this as any)[name].get_model();
+			let model = (this as any)[name].get_model();
 
 			for (let j: number = 0; j < 16; j++) {
 				// Fill modelData with the model matrices for all the quads
-				this.modelData[16 * i + j] = <number>model2.at(j);
-				if (object.hasBoundingBox) {
-					this.boundingBoxData[16 * b_index + j] = <number>model2.at(j);
-				}
+				this.modelData[16 * i + j] = <number>model.at(j);
+				if (object.hasBoundingBox) this.boundingBoxData[16 * b_index + j] = <number>model.at(j);
 			}
 
 			i++;
 
-			if (object.hasBoundingBox && meshes[n].modelName !== 'player') {
-				const modelTransorm: Float32Array = this.modelData.slice(16 * b_index, 16 * b_index + 16);
+			if (object.hasBoundingBox && name !== 'player') {
+				const modelTransorm: Float32Array = this.boundingBoxData.slice(16 * b_index, 16 * b_index + 16);
 				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
 				const modelVerticesGrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
 

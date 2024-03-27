@@ -9,7 +9,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd img/player/player.jpg
+map_Kd dist/img/player/player.jpg
 
 newmtl chrome
 Ns 8.000002
@@ -29,7 +29,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd img/player/player.jpg
+map_Kd dist/img/player/player.jpg
 
 newmtl handle
 Ns 8.000002
@@ -49,7 +49,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 1
-map_Kd img/player/player.jpg
+map_Kd dist/img/player/player.jpg
 
 newmtl item1
 Ns 8.000002
@@ -69,7 +69,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd img/player/player.jpg
+map_Kd dist/img/player/player.jpg
 
 newmtl wheels
 Ns 8.000002
@@ -79,7 +79,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd img/player/player.jpg
+map_Kd dist/img/player/player.jpg
 
 newmtl yellow
 Ns 8.000002
@@ -89,4 +89,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd img/player/player.jpg
+map_Kd dist/img/player/player.jpg

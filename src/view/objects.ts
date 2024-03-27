@@ -4,7 +4,6 @@ export interface IObjectValue {
 
 export interface IObject {
 	images: IObjectValue;
-	names: IObjectValue;
 	hasBoundingBox: boolean;
 }
 
@@ -13,12 +12,22 @@ export interface IObjectData {
 }
 
 export const objectData: IObjectData = {
+	tree: {
+		images: {
+			0: 'GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE_DISP.png',
+			1: 'GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE_SPEC.png',
+			2: 'GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE.png',
+			3: 'GenTree_1_Trunk_Limbs_AE3D_03312023-A-HEIGHT.png',
+			4: 'GenTree_1_Trunk_Limbs_AE3D_03312023-A-NORMAL.png',
+			5: 'GenTree_1_Trunk_Limbs_AE3D_03312023-A-SMOOTH.png',
+			6: 'GenTree_1_Twigs_AE3D_03312023-A-DIFFUSE.png',
+			7: 'Maple_AE3D_03272021-A2-50pc.png',
+		},
+		hasBoundingBox: true,
+	},
 	floor: {
 		images: {
 			0: 'floor.jpg',
-		},
-		names: {
-			0: 'floor',
 		},
 		hasBoundingBox: false,
 	},
@@ -26,26 +35,17 @@ export const objectData: IObjectData = {
 		images: {
 			0: 'house.png',
 		},
-		names: {
-			0: 'house',
-		},
 		hasBoundingBox: true,
 	},
 	player: {
 		images: {
 			0: 'player.jpg',
 		},
-		names: {
-			0: 'player',
-		},
 		hasBoundingBox: true,
 	},
 	spaceship: {
 		images: {
 			0: 'spaceship.jpg',
-		},
-		names: {
-			0: 'spaceship',
 		},
 		hasBoundingBox: true,
 	},
