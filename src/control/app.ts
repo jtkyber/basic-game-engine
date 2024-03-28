@@ -2,32 +2,33 @@ import { Vec2, Vec3 } from 'wgpu-matrix';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
-import { objectData } from '../view/objects';
 import { Renderer } from '../view/renderer';
 
 export class App {
 	canvas: HTMLCanvasElement;
-	objectNames: string[];
 	renderer: Renderer;
 	collisionDebug: boolean;
 	scene: Scene;
 	keysPressed: string[];
 	moveVec: Vec2;
-	timeStamp: number;
-	fpsValue: string;
 	pointerLocked: boolean;
 	maxFramerate: number;
-	loopWaitTime: number;
+	timeStamp: number;
+	fpsInterval: number;
+	deltaTime: number;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
-		this.objectNames = Object.keys(objectData);
 		this.collisionDebug = false;
-		this.renderer = new Renderer(canvas, objectData, this.objectNames, this.collisionDebug);
-		this.scene = new Scene(objectData, this.objectNames);
+
 		this.pointerLocked = false;
-		this.maxFramerate = 60;
-		this.loopWaitTime = (1 / this.maxFramerate) * 1000;
+		this.maxFramerate = 144;
+		this.fpsInterval = 1000 / this.maxFramerate; // ms per frame
+		this.deltaTime = 0;
+		this.timeStamp = 0;
+
+		this.renderer = new Renderer(this.canvas, this.collisionDebug);
+		this.scene = new Scene();
 
 		document.addEventListener('keydown', e => this.handleKeyDown(e));
 		document.addEventListener('keyup', e => this.handleKeyUp(e));
@@ -50,11 +51,16 @@ export class App {
 	async initialize() {
 		window.myLib = window.myLib || {};
 		window.myLib.deltaTime = 0;
+
 		await this.renderer.initialize();
 	}
 
+	wait(t: number): Promise<void> {
+		return new Promise((res, rej) => setTimeout(res, t));
+	}
+
 	run = async () => {
-		let running: boolean = true;
+		this.timeStamp = Date.now();
 
 		const meshes: ObjMesh[] = this.renderer.objectMeshes;
 		const playerMesh: ObjMesh = meshes.filter(m => m.modelName === 'player')[0];
@@ -81,14 +87,16 @@ export class App {
 			1000 / window.myLib.deltaTime
 		)).toString();
 
-		if (running) {
-			this.timeStamp = Date.now();
+		this.deltaTime = Date.now() - this.timeStamp;
 
-			setTimeout(() => {
-				requestAnimationFrame(this.run);
-				window.myLib.deltaTime = Date.now() - this.timeStamp;
-			}, this.loopWaitTime);
+		if (this.deltaTime < this.fpsInterval) {
+			await this.wait(this.fpsInterval - this.deltaTime);
+			window.myLib.deltaTime = Date.now() - this.timeStamp;
+		} else {
+			window.myLib.deltaTime = this.deltaTime;
 		}
+
+		requestAnimationFrame(this.run);
 	};
 
 	handleKeyDown(e: KeyboardEvent) {

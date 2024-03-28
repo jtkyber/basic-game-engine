@@ -1,5 +1,3 @@
-import { IObjectValue } from './objects';
-
 export class Material {
 	texture: GPUTexture;
 	view: GPUTextureView;
@@ -9,7 +7,7 @@ export class Material {
 
 	async initialize(
 		device: GPUDevice,
-		images: IObjectValue,
+		images: { [id: number]: string },
 		bindGroupLayout: GPUBindGroupLayout,
 		depthStencilView: GPUTextureView
 	) {
@@ -107,7 +105,7 @@ export class Material {
 		return context.getImageData(0, 0, canvas.width, canvas.height);
 	}
 
-	async loadImageBitmap(device: GPUDevice, images: IObjectValue) {
+	async loadImageBitmap(device: GPUDevice, images: { [id: number]: string }) {
 		const urls: string[] = Object.values(images);
 		const layers: number = urls.length;
 

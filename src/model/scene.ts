@@ -1,25 +1,16 @@
-import { Vec3, vec3 } from 'wgpu-matrix';
+import { Mat4, Vec3, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
+import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
 import { dot, num_vec_multiply, vecAdd } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
-import { IObject, IObjectData } from '../view/objects';
 import { Camera } from './camera';
-import { Floor } from './floor';
-import { House } from './house';
+import { Model } from './model';
 import { Player } from './player';
-import { Spaceship } from './spaceship';
-import { Tree } from './tree';
 
 export class Scene {
-	objectData: IObjectData;
-	objectNames: string[];
-	spaceship: Spaceship;
-	house: House;
-	player: Player;
-	floor: Floor;
-	tree: Tree;
+	player: Player & any;
 	camera: Camera;
 	modelData: Float32Array;
 	boundingBoxData: Float32Array;
@@ -29,22 +20,15 @@ export class Scene {
 	lastPlayerPos: Vec3;
 	lastCamPosition: Vec3;
 	playerMoving: boolean;
+	models: Model[];
 
-	constructor(objectData: IObjectData, objectNames: string[]) {
-		this.objectData = objectData;
-		this.objectNames = objectNames;
-		this.modelData = new Float32Array(16 * this.objectNames.length);
-		this.boundingBoxData = new Float32Array(16 * 3);
+	constructor() {
+		this.modelData = new Float32Array(16 * objectCount);
+		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;
 		this.camHeightAbovePlayer = 0.5;
 		this.playerMoving = false;
-
-		this.player = new Player([0, 0, 0], [0, 0, 0]);
-		this.spaceship = new Spaceship([0, -50, 1], [0, 0, 0]);
-		this.house = new House([13, -10, 0], [0, 0, 0]);
-		this.floor = new Floor([0, 0, 0], [0, 0, 0]);
-		this.tree = new Tree([10, 2, 0], [90, 0, 0]);
-
+		this.player = objectList.player.models[0];
 		this.camera = new Camera(
 			[
 				this.player.position[0] - this.camDistFromPlayer,
@@ -78,72 +62,71 @@ export class Scene {
 		let playerBoxZdeltas: number[] = [];
 		let counter = 0;
 
-		for (let n: number = 0; n < this.objectNames.length; n++) {
-			const name: string = this.objectNames[n];
-			const object: IObject = this.objectData[name];
+		for (let n: number = 0; n < Object.keys(objectList).length; n++) {
+			const name: string = Object.keys(objectList)[n];
+			const object: IObject = objectList[name];
 
-			(this as any)[name].update();
-			let model = (this as any)[name].get_model();
+			for (let oIndex: number = 0; oIndex < object.models.length; oIndex++) {
+				const model: Model = object.models[oIndex];
+				model.update();
+				let modelMatrix: Mat4 = model.get_model();
 
-			for (let j: number = 0; j < 16; j++) {
-				// Fill modelData with the model matrices for all the quads
-				this.modelData[16 * i + j] = <number>model.at(j);
-				if (object.hasBoundingBox) this.boundingBoxData[16 * b_index + j] = <number>model.at(j);
-			}
-
-			i++;
-
-			if (object.hasBoundingBox && name !== 'player') {
-				const modelTransorm: Float32Array = this.boundingBoxData.slice(16 * b_index, 16 * b_index + 16);
-				const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
-				const modelVerticesGrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
-
-				const collisionData: ICollision[] | false = player_object_collision(
-					playerBoundingVerticesInitial,
-					playerBoundingVerticesGrouped,
-					playerTransform,
-					modelVerticesInitial,
-					modelVerticesGrouped,
-					modelTransorm
-				);
-
-				if (collisionData) {
-					for (let k: number = 0; k < collisionData.length; k++) {
-						counter++;
-						if (
-							this.playerMoving &&
-							dot(this.moveDeltaVector, (this as any)[name].moveVector) > 0 &&
-							dot(this.moveDeltaVector, collisionData[k].planeNormal) <= 0
-						) {
-							// If moving towards the plane and object not moving toward player
-							// Get vector offset along plane normal
-							const offsetVecCur: Vec3 = num_vec_multiply(
-								dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
-								collisionData[k].planeNormal
-							);
-							collisionCount++;
-							offsetVec = offsetVecCur;
-						} else if (this.playerMoving && dot(this.moveDeltaVector, (this as any)[name].moveVector) <= 0) {
-							// If player moving and object moving towards player
-							const offsetVecCur: Vec3 = num_vec_multiply(
-								dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
-								collisionData[k].planeNormal
-							);
-							collisionCount++;
-							offsetVec = vecAdd(
-								offsetVecCur,
-								num_vec_multiply(-window.myLib.deltaTime, (this as any)[name].moveVector)
-							);
-						} else if (!this.playerMoving) {
-							// If player not moving and being pushed by object
-							collisionCount++;
-							offsetVec = num_vec_multiply(-window.myLib.deltaTime, (this as any)[name].moveVector);
-						}
-						// Include playerBoxZdelta even if vector is facing away from plane
-						playerBoxZdeltas.push(collisionData[k].playerBoxZdelta);
-					}
+				for (let j: number = 0; j < 16; j++) {
+					this.modelData[16 * i + j] = <number>modelMatrix.at(j);
+					if (object.hasBoundingBox) this.boundingBoxData[16 * b_index + j] = <number>modelMatrix.at(j);
 				}
-				b_index++;
+
+				i++;
+
+				if (object.hasBoundingBox && name !== 'player') {
+					const modelTransorm: Float32Array = this.boundingBoxData.slice(16 * b_index, 16 * b_index + 16);
+					const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
+					const modelVerticesGrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
+
+					const collisionData: ICollision[] | false = player_object_collision(
+						playerBoundingVerticesInitial,
+						playerBoundingVerticesGrouped,
+						playerTransform,
+						modelVerticesInitial,
+						modelVerticesGrouped,
+						modelTransorm
+					);
+
+					if (collisionData) {
+						for (let k: number = 0; k < collisionData.length; k++) {
+							counter++;
+							if (
+								this.playerMoving &&
+								dot(this.moveDeltaVector, model.moveVector) > 0 &&
+								dot(this.moveDeltaVector, collisionData[k].planeNormal) <= 0
+							) {
+								// If moving towards the plane and object not moving toward player
+								// Get vector offset along plane normal
+								const offsetVecCur: Vec3 = num_vec_multiply(
+									dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
+									collisionData[k].planeNormal
+								);
+								collisionCount++;
+								offsetVec = offsetVecCur;
+							} else if (this.playerMoving && dot(this.moveDeltaVector, model.moveVector) <= 0) {
+								// If player moving and object moving towards player
+								const offsetVecCur: Vec3 = num_vec_multiply(
+									dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
+									collisionData[k].planeNormal
+								);
+								collisionCount++;
+								offsetVec = vecAdd(offsetVecCur, num_vec_multiply(-window.myLib.deltaTime, model.moveVector));
+							} else if (!this.playerMoving) {
+								// If player not moving and being pushed by object
+								collisionCount++;
+								offsetVec = num_vec_multiply(-window.myLib.deltaTime, model.moveVector);
+							}
+							// Include playerBoxZdelta even if vector is facing away from plane
+							playerBoxZdeltas.push(collisionData[k].playerBoxZdelta);
+						}
+					}
+					b_index++;
+				}
 			}
 		}
 

@@ -1,17 +1,15 @@
 import { Vec3, mat4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
+import { IObject, IObjectList, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { degToRad } from '../utils/math_stuff';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
-import { IObject, IObjectData } from './objects';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';
 import shader from './shaders/shader.wgsl';
 import { TriangleMesh } from './triangle_mesh';
 
 export class Renderer {
 	// Objects
-	objectData: IObjectData;
-	objectNames: string[];
 	collisionDebug: boolean;
 
 	// Canvas Stuff
@@ -68,14 +66,7 @@ export class Renderer {
 	depthStencilView: GPUTextureView;
 	depthStencilAttachment: GPURenderPassDepthStencilAttachment;
 
-	constructor(
-		canvas: HTMLCanvasElement,
-		objectData: IObjectData,
-		objectNames: string[],
-		collisionDebug: boolean
-	) {
-		this.objectData = objectData;
-		this.objectNames = objectNames;
+	constructor(canvas: HTMLCanvasElement, collisionDebug: boolean) {
 		this.collisionDebug = collisionDebug;
 		this.canvas = canvas;
 		this.context = <GPUCanvasContext>canvas.getContext('webgpu');
@@ -118,7 +109,7 @@ export class Renderer {
 
 		this.objectBuffer = this.device.createBuffer({
 			// values in a 4x4 matrix * bytes per value * # of matrices
-			size: 4 * (16 * this.objectNames.length),
+			size: 4 * 16 * objectCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -136,34 +127,39 @@ export class Renderer {
 			this.boundingBoxBuffer = this.device.createBuffer({
 				// values in a 4x4 matrix * bytes per value * # of matrices
 				label: 'bounding box buffer',
-				size: 4 * 16 * 3,
+				size: 4 * 16 * boundingBoxCount,
 				usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 			});
 		}
 
 		this.triangleMesh = new TriangleMesh(this.device);
 
-		for (let i: number = 0; i < this.objectNames.length; i++) {
-			const modelName = this.objectNames[i];
-			const object: IObject = this.objectData[modelName];
+		let objectTotal: number = 0;
+		for (let i: number = 0; i < Object.keys(objectList).length; i++) {
+			const name = Object.keys(objectList)[i];
+			const object: IObject = objectList[name];
+			const modelCount: number = object.models.length;
 
-			this.objectMeshes[i] = new ObjMesh(this.device);
-			console.log(i, `Parsing ${modelName} object`);
-			await this.objectMeshes[i].initialize(`dist/models/${modelName}/${modelName}`);
-			this.objectMeshes[i].set_model_name(modelName);
+			for (let j: number = 0; j < modelCount; j++) {
+				this.objectMeshes[objectTotal] = new ObjMesh(this.device);
+				console.log(objectTotal, `Parsing ${name} object`);
+				await this.objectMeshes[objectTotal].initialize(`dist/models/${name}/${name}`);
+				this.objectMeshes[objectTotal].set_model_name(name);
 
-			if (object.hasBoundingBox) {
-				console.log(i, `Parsing ${modelName} bounding box`);
-				await this.objectMeshes[i].generate_bounding_boxes(`dist/boundingBoxes/${modelName}_b.obj`);
+				if (object.hasBoundingBox) {
+					console.log(objectTotal, `Parsing ${name} bounding box`);
+					await this.objectMeshes[objectTotal].generate_bounding_boxes(`dist/boundingBoxes/${name}_b.obj`);
+				}
+
+				this.objectMaterials[objectTotal] = new Material();
+				await this.objectMaterials[objectTotal].initialize(
+					this.device,
+					this.objectMeshes[objectTotal].materialFilenames,
+					this.materialBindGroupLayout,
+					this.depthView
+				);
+				objectTotal++;
 			}
-
-			this.objectMaterials[i] = new Material();
-			await this.objectMaterials[i].initialize(
-				this.device,
-				this.objectMeshes[i].materialFilenames,
-				this.materialBindGroupLayout,
-				this.depthView
-			);
 		}
 	}
 	async makeDepthBufferResources() {
@@ -478,7 +474,7 @@ export class Renderer {
 		let objectsDrawn: number = 0;
 
 		// Models
-		for (let i: number = 0; i < this.objectNames.length; i++) {
+		for (let i: number = 0; i < objectCount; i++) {
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
 			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
 			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);
@@ -491,9 +487,9 @@ export class Renderer {
 
 			// Bounding Boxes
 			let b_index: number = 0;
-			for (let i: number = 0; i < this.objectNames.length; i++) {
-				const modelName: string = this.objectNames[i];
-				const object: IObject = this.objectData[modelName];
+			for (let i: number = 0; i < objectCount; i++) {
+				const name: string = Object.keys(objectList)[i];
+				const object: IObject = objectList[name];
 
 				if (object.hasBoundingBox) {
 					this.renderPass.setVertexBuffer(0, this.objectMeshes[i].boundingBoxBuffer);

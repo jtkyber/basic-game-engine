@@ -17,6 +17,8 @@ export class Model {
 		this.moveVector = [0, 0, 0];
 	}
 
+	update() {}
+
 	get_model(): Mat4 {
 		return this.model;
 	}

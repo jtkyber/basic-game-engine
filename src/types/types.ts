@@ -7,6 +7,8 @@ export interface ICollision {
 
 declare global {
 	interface Window {
-		myLib: any;
+		myLib: {
+			deltaTime: number;
+		};
 	}
 }
