@@ -68,7 +68,8 @@ export class App {
 		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
 
 		const lastCamPosition: Vec3 = this.scene.camera.position;
-		this.scene.lastPlayerPos = this.scene.player.position;
+		const lastPlayerPosition: Vec3 = this.scene.player.position;
+		this.scene.lastPlayerPos = lastPlayerPosition;
 		this.scene.lastCamPosition = lastCamPosition;
 
 		this.scene.move_player_FB(this.moveVec[0]);

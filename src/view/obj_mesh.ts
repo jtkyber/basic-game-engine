@@ -150,7 +150,6 @@ export class ObjMesh {
 			} else if (words[0] === 'map_Kd') {
 				const filenameValues: string[] = Object.values(this.materialFilenames);
 				if (filenameValues.includes(words[1])) {
-					// this.materialFilenames[this.currentMaterial] = words[1];
 					this.materialIndeces[this.currentMaterial] = filenameValues.indexOf(words[1]);
 				} else {
 					this.materialFilenames[this.currentMaterial] = words[1];
@@ -248,7 +247,6 @@ export class ObjMesh {
 		if (vt) {
 			res.push(vt[0]);
 			res.push(vt[1]);
-			// res.push(0);
 			res.push(this.materialIndeces[this.currentMaterial]);
 		}
 

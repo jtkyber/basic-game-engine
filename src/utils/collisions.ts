@@ -57,7 +57,7 @@ function line_plane_collision_test(
 			// Plane intersection equation
 			const tNumer: number = nA * center[0] + nB * center[1] + nC * center[2] + d;
 			const tDenom: number = nA * diagVector[0] + nB * diagVector[1] + nC * diagVector[2];
-			const t: number = tNumer / tDenom;
+			const t: number = -tNumer / tDenom;
 
 			if (t >= 0 && t <= 1) {
 				const intersection: Vec3 = [

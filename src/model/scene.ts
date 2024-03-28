@@ -97,7 +97,7 @@ export class Scene {
 							counter++;
 							if (
 								this.playerMoving &&
-								dot(this.moveDeltaVector, model.moveVector) > 0 &&
+								dot(this.moveDeltaVector, model.moveVector) >= 0 &&
 								dot(this.moveDeltaVector, collisionData[k].planeNormal) <= 0
 							) {
 								// If moving towards the plane and object not moving toward player
@@ -108,7 +108,7 @@ export class Scene {
 								);
 								collisionCount++;
 								offsetVec = offsetVecCur;
-							} else if (this.playerMoving && dot(this.moveDeltaVector, model.moveVector) <= 0) {
+							} else if (this.playerMoving && dot(this.moveDeltaVector, model.moveVector) < 0) {
 								// If player moving and object moving towards player
 								const offsetVecCur: Vec3 = num_vec_multiply(
 									dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,

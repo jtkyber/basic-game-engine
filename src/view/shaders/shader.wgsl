@@ -27,7 +27,7 @@ struct FragOut {
     @location(0) color: vec4f,
 };
 
-const fogIntensity: f32 = 0.05;
+const fogIntensity: f32 = 0.04;
 const fogColor = vec3f(0.0, 0.0, 0.0);
 
 // Bound for each frame
