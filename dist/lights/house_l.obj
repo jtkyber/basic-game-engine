@@ -1,2 +1,7 @@
 # Blender 4.0.2
 # www.blender.org
+mtllib house_l.mtl
+usemtl Porch
+v -5.010212 -0.095921 2.357048
+usemtl Porch
+v -5.010212 1.644079 2.357048

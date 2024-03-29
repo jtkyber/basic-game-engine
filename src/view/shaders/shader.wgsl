@@ -7,20 +7,31 @@ struct ObjectData {
     model: array<mat4x4<f32>>,
 };
 
+struct LightData {
+    model: array<mat4x4<f32>>,
+};
+
 struct VertIn {
     @location(0) vertexPosition: vec3f,
     @location(1) vertexTexCoord: vec2f,
     @location(2) materialIndex: f32,
     @location(3) vertexNormal: vec3f,
+    @location(4) materialShininess: f32,
+    @location(5) materialSpecular: vec3f,
+    @location(6) materialAmbient: vec3f,
     @builtin(instance_index) instanceIndex: u32,
 };
 
 struct VertOut {
     @builtin(position) position: vec4f,
     @location(0) TextCoord: vec2f,
-    @location(1) playerPos: vec3f,
+    @location(1) cameraPos: vec3f,
     @location(2) worldPos: vec4f,
     @location(3) @interpolate(flat) materialIndex: u32,
+    @location(4) @interpolate(flat) vertexNormal: vec3f,
+    @location(5) @interpolate(flat) materialShininess: f32,
+    @location(6) @interpolate(flat) materialSpecular: vec3f,
+    @location(7) @interpolate(flat) materialAmbient: vec3f,
 };
 
 struct FragOut {
@@ -33,8 +44,13 @@ const fogColor = vec3f(0.0, 0.0, 0.0);
 // Bound for each frame
 @group(0) @binding(0) var<uniform> transformUBO: TransformData;
 @group(0) @binding(1) var<storage, read> objects: ObjectData;
-@group(0) @binding(2) var<uniform> playerPosition: vec3f;
+@group(0) @binding(2) var<uniform> cameraPosition: vec3f;
 @group(0) @binding(3) var<uniform> viewport: vec2f;
+
+@group(0) @binding(4) var<storage, read> lightData: LightData;
+@group(0) @binding(5) var<storage, read> lightPosition: vec3f;
+@group(0) @binding(6) var<storage, read> lightBrightness: f32;
+@group(0) @binding(7) var<storage, read> lightColor: vec3f;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -49,9 +65,13 @@ fn v_main(input: VertIn) -> VertOut {
 
     output.position = transformUBO.projection * transformUBO.view * vertWorlPos;
     output.TextCoord = input.vertexTexCoord;
-    output.playerPos = playerPosition.xyz;
+    output.cameraPos = cameraPosition.xyz;
     output.worldPos = vertWorlPos; 
     output.materialIndex = u32(input.materialIndex);
+    output.vertexNormal = input.vertexNormal;
+    output.materialShininess = input.materialShininess;
+    output.materialSpecular = input.materialSpecular;
+    output.materialAmbient = input.materialAmbient;
 
     return output;
 }
@@ -65,15 +85,34 @@ fn f_main(input: VertOut) -> FragOut {
         discard;
     }
 
-    let distFromPlayer = abs(distance(input.worldPos.xyz, input.playerPos));
+    let distFromPlayer = abs(distance(input.worldPos.xyz, input.cameraPos));
 
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
-    
-    let finalColor = mix(textureColor.rgb, fogColor, fogScaler);
 
+    let lightPos = vec3f(-10.0, -10.0, 5.0);
+    let lightDir = normalize(lightPos - input.worldPos.xyz);
+    let faceDirToCamera = normalize(input.worldPos.xyz - input.cameraPos);
+    
     // let depthSample = textureSampleCompare(myDepthTexture, myDepthSampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), 1.0);
 
-    output.color = vec4f(finalColor, textureColor.a);
+    // Ambient
+    let ka = 0.1;
+    let ambientLight = textureColor.rgb * input.materialAmbient * ka;
+
+    // Diffuse
+    let diffuseAmt = max(0.0, dot(lightDir, input.vertexNormal));
+    let diffuseLight = textureColor.rgb * diffuseAmt;
+
+    // Specular
+    let reflectedLight = reflect(lightDir, input.vertexNormal);
+    let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess);
+    let specularLight = specularAmt * input.materialSpecular;
+
+    let finalLight = ambientLight + diffuseLight + specularLight;
+
+    let finalWithFog = mix(finalLight, fogColor, fogScaler);
+
+    output.color = vec4f(finalWithFog, textureColor.a);
     
     return output;
 }

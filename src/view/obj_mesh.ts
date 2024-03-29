@@ -25,6 +25,15 @@ export class ObjMesh {
 	materialFilenames: {
 		[id: string]: string;
 	};
+	materialShininess: {
+		[id: string]: number;
+	};
+	materialSpecualar: {
+		[id: string]: Vec3;
+	};
+	materialAmbient: {
+		[id: string]: Vec3;
+	};
 	materialIndeces: {
 		[id: string]: number;
 	};
@@ -36,6 +45,9 @@ export class ObjMesh {
 		this.vn = [];
 		this.vb = [];
 		this.materialFilenames = {};
+		this.materialSpecualar = {};
+		this.materialAmbient = {};
+		this.materialShininess = {};
 		this.materialIndeces = {};
 	}
 
@@ -96,7 +108,7 @@ export class ObjMesh {
 		// prettier-ignore
 		await this.read_mtl_file(url)
 		await this.read_obj_file(url);
-		this.vertexCount = this.vertices.length / 9;
+		this.vertexCount = this.vertices.length / 16;
 
 		this.buffer = this.device.createBuffer({
 			size: this.vertices.byteLength,
@@ -108,7 +120,7 @@ export class ObjMesh {
 		this.buffer.unmap();
 
 		this.bufferLayout = {
-			arrayStride: 36,
+			arrayStride: 64,
 			attributes: [
 				// For the position
 				{
@@ -134,6 +146,24 @@ export class ObjMesh {
 					format: 'float32x3',
 					offset: 24,
 				},
+				// For Shininess (Ns)
+				{
+					shaderLocation: 4,
+					format: 'float32',
+					offset: 36,
+				},
+				// For Specular (Ks)
+				{
+					shaderLocation: 5,
+					format: 'float32x3',
+					offset: 40,
+				},
+				// For Ambient (Ka)
+				{
+					shaderLocation: 6,
+					format: 'float32x3',
+					offset: 52,
+				},
 			],
 		};
 	}
@@ -156,6 +186,12 @@ export class ObjMesh {
 					this.materialIndeces[this.currentMaterial] = materialCount;
 					materialCount++;
 				}
+			} else if (words[0] === 'Ka') {
+				this.materialAmbient[this.currentMaterial] = [Number(words[1]), Number(words[2]), Number(words[3])];
+			} else if (words[0] === 'Ks') {
+				this.materialSpecualar[this.currentMaterial] = [Number(words[1]), Number(words[2]), Number(words[3])];
+			} else if (words[0] === 'Ns') {
+				this.materialShininess[this.currentMaterial] = Number(words[1]);
 			}
 		});
 	}
@@ -244,17 +280,18 @@ export class ObjMesh {
 		res.push(v[1]);
 		res.push(v[2]);
 
-		if (vt) {
-			res.push(vt[0]);
-			res.push(vt[1]);
-			res.push(this.materialIndeces[this.currentMaterial]);
-		}
+		res.push(vt[0]);
+		res.push(vt[1]);
 
-		if (vn) {
-			res.push(vn[0]);
-			res.push(vn[1]);
-			res.push(vn[2]);
-		}
+		res.push(this.materialIndeces[this.currentMaterial]);
+
+		res.push(vn[0]);
+		res.push(vn[1]);
+		res.push(vn[2]);
+
+		res.push(this.materialShininess[this.currentMaterial]);
+		res.push(...this.materialSpecualar[this.currentMaterial]);
+		res.push(...this.materialAmbient[this.currentMaterial]);
 	}
 
 	read_face_line_b(line: string, result: number[]) {

@@ -1,6 +1,7 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
+import { LightMesh } from '../view/light_mesh';
 import { ObjMesh } from '../view/obj_mesh';
 import { Renderer } from '../view/renderer';
 
@@ -52,7 +53,12 @@ export class App {
 		window.myLib = window.myLib || {};
 		window.myLib.deltaTime = 0;
 
+		await this.renderer.setupDevice();
+		await this.renderer.initLights();
 		await this.renderer.initialize();
+		const meshes: ObjMesh[] = this.renderer.objectMeshes;
+		const playerMesh: ObjMesh = meshes.filter(m => m.modelName === 'player')[0];
+		this.scene.set_meshes(meshes, playerMesh, this.renderer.lightMesh);
 	}
 
 	wait(t: number): Promise<void> {
@@ -62,9 +68,7 @@ export class App {
 	run = async () => {
 		this.timeStamp = Date.now();
 
-		const meshes: ObjMesh[] = this.renderer.objectMeshes;
-		const playerMesh: ObjMesh = meshes.filter(m => m.modelName === 'player')[0];
-		this.scene.update(meshes, playerMesh);
+		this.scene.update();
 		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
 
 		const lastCamPosition: Vec3 = this.scene.camera.position;

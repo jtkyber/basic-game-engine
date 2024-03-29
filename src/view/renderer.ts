@@ -2,6 +2,7 @@ import { Vec3, mat4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { IObject, IObjectList, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { degToRad } from '../utils/math_stuff';
+import { LightMesh } from './light_mesh';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';
@@ -30,8 +31,10 @@ export class Renderer {
 	uniformBuffer: GPUBuffer;
 	objectBuffer: GPUBuffer;
 	boundingBoxBuffer: GPUBuffer;
-	playerPosBuffer: GPUBuffer;
+	cameraPosBuffer: GPUBuffer;
 	vpDimensionBuffer: GPUBuffer;
+	lightMatrixBuffer: GPUBuffer;
+	lightDataBuffer: GPUBuffer;
 
 	frameBindGroupLayout: GPUBindGroupLayout;
 	boundingBoxBindGroupLayout: GPUBindGroupLayout;
@@ -50,6 +53,7 @@ export class Renderer {
 	// Meshes
 	triangleMesh: TriangleMesh;
 	objectMeshes: ObjMesh[];
+	lightMesh: LightMesh;
 
 	// Materials
 	quadMaterial: Material;
@@ -77,7 +81,6 @@ export class Renderer {
 	}
 
 	async initialize() {
-		await this.setupDevice();
 		await this.makeBindGroupLayouts();
 		await this.makeDepthBufferResources();
 		await this.createAssets();
@@ -100,6 +103,12 @@ export class Renderer {
 		});
 	}
 
+	async initLights() {
+		console.log('Parsing Light Mesh');
+		this.lightMesh = new LightMesh(this.device);
+		await this.lightMesh.init();
+	}
+
 	async createAssets() {
 		this.uniformBuffer = this.device.createBuffer({
 			// values in a 4x4 matrix * bytes per value * # of matrices
@@ -113,7 +122,19 @@ export class Renderer {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		this.playerPosBuffer = this.device.createBuffer({
+		this.lightMatrixBuffer = this.device.createBuffer({
+			label: 'Light Matrix Buffer',
+			size: 4 * 16 * this.lightMesh.lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightDataBuffer = this.device.createBuffer({
+			label: 'Light Data Buffer',
+			size: this.lightMesh.vertices.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.cameraPosBuffer = this.device.createBuffer({
 			size: 4 * 3,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
@@ -233,6 +254,22 @@ export class Renderer {
 					visibility: GPUShaderStage.FRAGMENT,
 					buffer: {},
 				},
+				{
+					binding: 4,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
+				{
+					binding: 5,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
 			],
 		});
 
@@ -310,7 +347,7 @@ export class Renderer {
 				{
 					binding: 2,
 					resource: {
-						buffer: this.playerPosBuffer,
+						buffer: this.cameraPosBuffer,
 					},
 				},
 				{
@@ -319,8 +356,28 @@ export class Renderer {
 						buffer: this.vpDimensionBuffer,
 					},
 				},
+				{
+					binding: 4,
+					resource: {
+						buffer: this.lightMatrixBuffer,
+					},
+				},
+				{
+					binding: 5,
+					resource: {
+						buffer: this.lightDataBuffer,
+					},
+				},
 			],
 		});
+
+		const lightPos: Float32Array = new Float32Array(this.lightMesh.lightPositionArr);
+		const brightness: Float32Array = new Float32Array(this.lightMesh.brightnessArr);
+		const color: Float32Array = new Float32Array(this.lightMesh.colorValueArr);
+
+		this.device.queue.writeBuffer(this.lightDataBuffer, 0, lightPos);
+		this.device.queue.writeBuffer(this.lightDataBuffer, lightPos.byteLength, brightness);
+		this.device.queue.writeBuffer(this.lightDataBuffer, brightness.byteLength, color);
 
 		if (this.collisionDebug) {
 			this.boundingBoxBindGroup = this.device.createBindGroup({
@@ -434,6 +491,14 @@ export class Renderer {
 			renderables.modelTransforms.length
 		);
 
+		this.device.queue.writeBuffer(
+			this.lightMatrixBuffer,
+			0,
+			<ArrayBuffer>renderables.lightTransforms,
+			0,
+			renderables.lightTransforms.length
+		);
+
 		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(
 				this.boundingBoxBuffer,
@@ -447,7 +512,7 @@ export class Renderer {
 		this.device.queue.writeBuffer(this.uniformBuffer, 0, <ArrayBuffer>view);
 		this.device.queue.writeBuffer(this.uniformBuffer, 64, <ArrayBuffer>projection);
 
-		this.device.queue.writeBuffer(this.playerPosBuffer, 0, <ArrayBuffer>new Float32Array(cameraPosition));
+		this.device.queue.writeBuffer(this.cameraPosBuffer, 0, <ArrayBuffer>new Float32Array(cameraPosition));
 		this.device.queue.writeBuffer(
 			this.vpDimensionBuffer,
 			0,

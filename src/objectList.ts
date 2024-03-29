@@ -1,4 +1,3 @@
-import { Vec3 } from 'wgpu-matrix';
 import { Floor } from './model/floor';
 import { House } from './model/house';
 import { Model } from './model/model';
@@ -8,8 +7,8 @@ import { Tree } from './model/tree';
 
 export interface IObject {
 	models: Model[];
-	lightSources: Vec3[];
 	hasBoundingBox: boolean;
+	hasLights: boolean;
 }
 
 export interface IObjectList {
@@ -19,28 +18,28 @@ export interface IObjectList {
 export const objectList: IObjectList = {
 	player: {
 		models: [new Player([0, 0, 10], [0, 0, 0])],
-		lightSources: [],
 		hasBoundingBox: true,
+		hasLights: false,
 	},
 	house: {
 		models: [new House([13, -10, 0], [0, 0, 0])],
-		lightSources: [],
 		hasBoundingBox: true,
+		hasLights: true,
 	},
 	spaceship: {
-		models: [new Spaceship([13, -10, 10], [0, 0, 0])],
-		lightSources: [],
+		models: [new Spaceship([-2, -10, 1], [0, 0, 0])],
 		hasBoundingBox: true,
+		hasLights: false,
 	},
 	tree: {
 		models: [new Tree([10, 2, 0], [90, 0, 0]), new Tree([10, 6, 0], [90, 0, 0])],
-		lightSources: [],
 		hasBoundingBox: true,
+		hasLights: false,
 	},
 	floor: {
 		models: [new Floor([0, 0, 0], [0, 0, 0])],
-		lightSources: [],
 		hasBoundingBox: false,
+		hasLights: false,
 	},
 };
 

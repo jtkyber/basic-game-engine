@@ -4,6 +4,8 @@ import { IObject, boundingBoxCount, objectCount, objectList } from '../objectLis
 import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
 import { dot, num_vec_multiply, vecAdd } from '../utils/math_stuff';
+import { one_four_by_four_four } from '../utils/matrices';
+import { LightMesh } from '../view/light_mesh';
 import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';
 import { Model } from './model';
@@ -13,6 +15,7 @@ export class Scene {
 	player: Player & any;
 	camera: Camera;
 	modelData: Float32Array;
+	lightData: number[];
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
 	camDistFromPlayer: number;
@@ -21,9 +24,13 @@ export class Scene {
 	lastCamPosition: Vec3;
 	playerMoving: boolean;
 	models: Model[];
+	meshes: ObjMesh[];
+	playerMesh: ObjMesh;
+	lightMesh: LightMesh;
 
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
+		this.lightData = [];
 		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;
 		this.camHeightAbovePlayer = 0.5;
@@ -40,12 +47,18 @@ export class Scene {
 		);
 	}
 
-	update(meshes: ObjMesh[], playerMesh: ObjMesh) {
+	set_meshes(meshes: ObjMesh[], playerMesh: ObjMesh, lightMesh: LightMesh) {
+		this.meshes = meshes;
+		this.playerMesh = playerMesh;
+		this.lightMesh = lightMesh;
+	}
+
+	update() {
 		if (this.camDistFromPlayer < 1) this.camDistFromPlayer = 1;
 		else if (this.camDistFromPlayer > 10) this.camDistFromPlayer = 10;
 
-		const playerBoundingVerticesInitial: Float32Array = playerMesh.boundingBoxVerticesInitial;
-		const playerBoundingVerticesGrouped: Float32Array = playerMesh.boundingBoxVerticesGrouped;
+		const playerBoundingVerticesInitial: Float32Array = this.playerMesh.boundingBoxVerticesInitial;
+		const playerBoundingVerticesGrouped: Float32Array = this.playerMesh.boundingBoxVerticesGrouped;
 
 		this.player.apply_gravity();
 		this.player.update();
@@ -57,6 +70,7 @@ export class Scene {
 
 		let i: number = 0;
 		let b_index: number = 0;
+		let light_index: number = 0;
 		let offsetVec: Vec3 = [];
 		let collisionCount: number = 0;
 		let playerBoxZdeltas: number[] = [];
@@ -76,12 +90,22 @@ export class Scene {
 					if (object.hasBoundingBox) this.boundingBoxData[16 * b_index + j] = <number>modelMatrix.at(j);
 				}
 
+				if (object.hasLights) {
+					const lights: Vec3[] = this.lightMesh.lightPositions[name];
+					for (let l: number = 0; l < lights.length; l++) {
+						for (let j: number = 0; j < 16; j++) {
+							this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
+						}
+						light_index++;
+					}
+				}
+
 				i++;
 
 				if (object.hasBoundingBox && name !== 'player') {
 					const modelTransorm: Float32Array = this.boundingBoxData.slice(16 * b_index, 16 * b_index + 16);
-					const modelVerticesInitial: Float32Array = meshes[n].boundingBoxVerticesInitial;
-					const modelVerticesGrouped: Float32Array = meshes[n].boundingBoxVerticesGrouped;
+					const modelVerticesInitial: Float32Array = this.meshes[n].boundingBoxVerticesInitial;
+					const modelVerticesGrouped: Float32Array = this.meshes[n].boundingBoxVerticesGrouped;
 
 					const collisionData: ICollision[] | false = player_object_collision(
 						playerBoundingVerticesInitial,
@@ -182,6 +206,7 @@ export class Scene {
 			viewTransform: this.camera.get_view(),
 			modelTransforms: this.modelData,
 			boundingBoxTransforms: this.boundingBoxData,
+			lightTransforms: new Float32Array(this.lightData),
 		};
 	}
 
