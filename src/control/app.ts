@@ -16,16 +16,15 @@ export class App {
 	maxFramerate: number;
 	timeStamp: number;
 	fpsInterval: number;
-	deltaTime: number;
+	deltaTie: number;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
 		this.collisionDebug = false;
 
 		this.pointerLocked = false;
-		this.maxFramerate = 144;
+		this.maxFramerate = 60;
 		this.fpsInterval = 1000 / this.maxFramerate; // ms per frame
-		this.deltaTime = 0;
 		this.timeStamp = 0;
 
 		this.renderer = new Renderer(this.canvas, this.collisionDebug);
@@ -92,14 +91,9 @@ export class App {
 			1000 / window.myLib.deltaTime
 		)).toString();
 
-		this.deltaTime = Date.now() - this.timeStamp;
-
-		if (this.deltaTime < this.fpsInterval) {
-			await this.wait(this.fpsInterval - this.deltaTime);
-			window.myLib.deltaTime = Date.now() - this.timeStamp;
-		} else {
-			window.myLib.deltaTime = this.deltaTime;
-		}
+		const deltaTime = Date.now() - this.timeStamp;
+		if (deltaTime < this.fpsInterval) await this.wait(this.fpsInterval - deltaTime);
+		window.myLib.deltaTime = Date.now() - this.timeStamp;
 
 		requestAnimationFrame(this.run);
 	};

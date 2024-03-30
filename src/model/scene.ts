@@ -4,7 +4,6 @@ import { IObject, boundingBoxCount, objectCount, objectList } from '../objectLis
 import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
 import { dot, num_vec_multiply, vecAdd } from '../utils/math_stuff';
-import { one_four_by_four_four } from '../utils/matrices';
 import { LightMesh } from '../view/light_mesh';
 import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';

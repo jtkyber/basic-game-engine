@@ -30,9 +30,31 @@ export class Material {
 			maxAnisotropy: 1,
 		};
 
-		await this.loadImageBitmap(device, images);
+		if (Object.keys(images).length) {
+			await this.loadImageBitmap(device, images);
 
-		this.view = this.texture.createView(viewDescriptor);
+			this.view = this.texture.createView(viewDescriptor);
+		} else {
+			this.texture = device.createTexture({
+				label: 'Combined Texture Descriptor',
+				size: {
+					width: 1,
+					height: 1,
+					depthOrArrayLayers: 1,
+				},
+				format: 'rgba8unorm',
+				usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+			});
+			this.view = this.texture.createView({
+				format: 'rgba8unorm',
+				dimension: '2d-array',
+				aspect: 'all',
+				baseMipLevel: 0,
+				mipLevelCount: 1,
+				baseArrayLayer: 0,
+				arrayLayerCount: 1,
+			});
+		}
 
 		this.sampler = device.createSampler(samplerDescriptor);
 

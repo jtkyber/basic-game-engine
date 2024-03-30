@@ -1,3 +1,4 @@
+import { Car } from './model/car';
 import { Floor } from './model/floor';
 import { House } from './model/house';
 import { Model } from './model/model';
@@ -26,11 +27,11 @@ export const objectList: IObjectList = {
 		hasBoundingBox: true,
 		hasLights: true,
 	},
-	spaceship: {
-		models: [new Spaceship([-2, -10, 1], [0, 0, 0])],
-		hasBoundingBox: true,
-		hasLights: false,
-	},
+	// spaceship: {
+	// 	models: [new Spaceship([-2, -10, 1], [0, 0, 0])],
+	// 	hasBoundingBox: true,
+	// 	hasLights: false,
+	// },
 	tree: {
 		models: [new Tree([10, 2, 0], [90, 0, 0]), new Tree([10, 6, 0], [90, 0, 0])],
 		hasBoundingBox: true,
@@ -38,6 +39,11 @@ export const objectList: IObjectList = {
 	},
 	floor: {
 		models: [new Floor([0, 0, 0], [0, 0, 0])],
+		hasBoundingBox: false,
+		hasLights: false,
+	},
+	car: {
+		models: [new Car([-2, -4, 0], [0, 0, -45])],
 		hasBoundingBox: false,
 		hasLights: false,
 	},

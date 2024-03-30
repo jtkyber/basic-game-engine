@@ -19,6 +19,7 @@ struct VertIn {
     @location(4) materialShininess: f32,
     @location(5) materialSpecular: vec3f,
     @location(6) materialAmbient: vec3f,
+    @location(7) materialDiffuse: vec3f,
     @builtin(instance_index) instanceIndex: u32,
 };
 
@@ -32,6 +33,7 @@ struct VertOut {
     @location(5) @interpolate(flat) materialShininess: f32,
     @location(6) @interpolate(flat) materialSpecular: vec3f,
     @location(7) @interpolate(flat) materialAmbient: vec3f,
+    @location(8) @interpolate(flat) materialDiffuse: vec3f,
 };
 
 struct FragOut {
@@ -72,6 +74,7 @@ fn v_main(input: VertIn) -> VertOut {
     output.materialShininess = input.materialShininess;
     output.materialSpecular = input.materialSpecular;
     output.materialAmbient = input.materialAmbient;
+    output.materialDiffuse = input.materialDiffuse;
 
     return output;
 }
@@ -89,19 +92,23 @@ fn f_main(input: VertOut) -> FragOut {
 
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
 
-    let lightPos = vec3f(-10.0, -10.0, 5.0);
+    let lightPos = vec3f(-5.0, -5.0, 10.0);
     let lightDir = normalize(lightPos - input.worldPos.xyz);
     let faceDirToCamera = normalize(input.worldPos.xyz - input.cameraPos);
     
     // let depthSample = textureSampleCompare(myDepthTexture, myDepthSampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), 1.0);
 
     // Ambient
-    let ka = 0.1;
+    let ka = 0.2;
     let ambientLight = textureColor.rgb * input.materialAmbient * ka;
 
     // Diffuse
+    var diffuseColor = input.materialDiffuse;
+    if (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0) {
+        diffuseColor = textureColor.rgb;
+    }
     let diffuseAmt = max(0.0, dot(lightDir, input.vertexNormal));
-    let diffuseLight = textureColor.rgb * diffuseAmt;
+    let diffuseLight = diffuseColor * diffuseAmt;
 
     // Specular
     let reflectedLight = reflect(lightDir, input.vertexNormal);

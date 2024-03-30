@@ -1,6 +1,6 @@
 import { Vec3, mat4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
-import { IObject, IObjectList, boundingBoxCount, objectCount, objectList } from '../objectList';
+import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { degToRad } from '../utils/math_stuff';
 import { LightMesh } from './light_mesh';
 import { Material } from './material';
@@ -112,34 +112,38 @@ export class Renderer {
 	async createAssets() {
 		this.uniformBuffer = this.device.createBuffer({
 			// values in a 4x4 matrix * bytes per value * # of matrices
+			label: 'Uniform Buffer',
 			size: 16 * 4 * 2,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
 		this.objectBuffer = this.device.createBuffer({
 			// values in a 4x4 matrix * bytes per value * # of matrices
+			label: 'Object Buffer',
 			size: 4 * 16 * objectCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		this.lightMatrixBuffer = this.device.createBuffer({
 			label: 'Light Matrix Buffer',
-			size: 4 * 16 * this.lightMesh.lightCount,
+			size: 4 * 16 * this.lightMesh.lightCount || 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		this.lightDataBuffer = this.device.createBuffer({
 			label: 'Light Data Buffer',
-			size: this.lightMesh.vertices.byteLength,
+			size: this.lightMesh.vertices.byteLength || 12,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		this.cameraPosBuffer = this.device.createBuffer({
+			label: 'CameraPos Buffer',
 			size: 4 * 3,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
 		this.vpDimensionBuffer = this.device.createBuffer({
+			label: 'Uniform Buffer',
 			size: 4 * 2,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
@@ -330,6 +334,7 @@ export class Renderer {
 
 	async makeBindGroup() {
 		this.frameBindGroup = this.device.createBindGroup({
+			label: 'Frame Bind Group',
 			layout: this.frameBindGroupLayout,
 			entries: [
 				{
@@ -375,9 +380,15 @@ export class Renderer {
 		const brightness: Float32Array = new Float32Array(this.lightMesh.brightnessArr);
 		const color: Float32Array = new Float32Array(this.lightMesh.colorValueArr);
 
-		this.device.queue.writeBuffer(this.lightDataBuffer, 0, lightPos);
-		this.device.queue.writeBuffer(this.lightDataBuffer, lightPos.byteLength, brightness);
-		this.device.queue.writeBuffer(this.lightDataBuffer, brightness.byteLength, color);
+		if (lightPos) {
+			this.device.queue.writeBuffer(this.lightDataBuffer, 0, lightPos);
+			this.device.queue.writeBuffer(this.lightDataBuffer, lightPos.byteLength, brightness);
+			this.device.queue.writeBuffer(this.lightDataBuffer, brightness.byteLength, color);
+		} else {
+			this.device.queue.writeBuffer(this.lightDataBuffer, 0, new Float32Array(0));
+			this.device.queue.writeBuffer(this.lightDataBuffer, 4, new Float32Array(0));
+			this.device.queue.writeBuffer(this.lightDataBuffer, 8, new Float32Array(0));
+		}
 
 		if (this.collisionDebug) {
 			this.boundingBoxBindGroup = this.device.createBindGroup({
