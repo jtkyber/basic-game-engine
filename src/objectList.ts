@@ -26,7 +26,6 @@ export const objectList: IObjectList = {
 		hasBoundingBox: true,
 		hasLights: true,
 	},
-
 	tree: {
 		models: [new Tree([10, 2, 0], [90, 0, 0]), new Tree([10, 6, 0], [90, 0, 0])],
 		hasBoundingBox: true,

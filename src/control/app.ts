@@ -1,7 +1,6 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
-import { LightMesh } from '../view/light_mesh';
 import { ObjMesh } from '../view/obj_mesh';
 import { Renderer } from '../view/renderer';
 
