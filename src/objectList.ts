@@ -3,7 +3,6 @@ import { Floor } from './model/floor';
 import { House } from './model/house';
 import { Model } from './model/model';
 import { Player } from './model/player';
-import { Spaceship } from './model/spaceship';
 import { Tree } from './model/tree';
 
 export interface IObject {
@@ -27,11 +26,7 @@ export const objectList: IObjectList = {
 		hasBoundingBox: true,
 		hasLights: true,
 	},
-	// spaceship: {
-	// 	models: [new Spaceship([-2, -10, 1], [0, 0, 0])],
-	// 	hasBoundingBox: true,
-	// 	hasLights: false,
-	// },
+
 	tree: {
 		models: [new Tree([10, 2, 0], [90, 0, 0]), new Tree([10, 6, 0], [90, 0, 0])],
 		hasBoundingBox: true,

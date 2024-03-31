@@ -14,9 +14,10 @@ export class App {
 	moveVec: Vec2;
 	pointerLocked: boolean;
 	maxFramerate: number;
-	timeStamp: number;
 	fpsInterval: number;
-	deltaTie: number;
+	then: number;
+	startTime: number;
+	now: number;
 
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
@@ -25,7 +26,6 @@ export class App {
 		this.pointerLocked = false;
 		this.maxFramerate = 60;
 		this.fpsInterval = 1000 / this.maxFramerate; // ms per frame
-		this.timeStamp = 0;
 
 		this.renderer = new Renderer(this.canvas, this.collisionDebug);
 		this.scene = new Scene();
@@ -60,42 +60,51 @@ export class App {
 		this.scene.set_meshes(meshes, playerMesh, this.renderer.lightMesh);
 	}
 
-	wait(t: number): Promise<void> {
-		return new Promise((res, rej) => setTimeout(res, t));
-	}
+	start = () => {
+		this.then = performance.now();
+		this.startTime = this.then;
+		this.run();
 
-	run = async () => {
-		this.timeStamp = Date.now();
+		setInterval(() => {
+			(document.getElementById('fps_counter') as HTMLElement).innerText = (~~(
+				1000 / window.myLib.deltaTime
+			)).toString();
+		}, 1000);
+	};
 
-		this.scene.update();
-		this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
-
-		const lastCamPosition: Vec3 = this.scene.camera.position;
-		const lastPlayerPosition: Vec3 = this.scene.player.position;
-		this.scene.lastPlayerPos = lastPlayerPosition;
-		this.scene.lastCamPosition = lastCamPosition;
-
-		this.scene.move_player_FB(this.moveVec[0]);
-		this.scene.move_player_LR(this.moveVec[1]);
-
-		// Get distance/direction moved vector from last frame
-		const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastCamPosition);
-		this.scene.moveDeltaVector = moveDeltaVector;
-		this.scene.playerMoving = false;
-
-		if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0) {
-			this.scene.playerMoving = true;
-			this.scene.player.set_rotation(Math.atan2(moveDeltaVector[1], moveDeltaVector[0]) * (180 / Math.PI), 1);
-		}
-		(document.getElementById('fps_counter') as HTMLElement).innerText = (~~(
-			1000 / window.myLib.deltaTime
-		)).toString();
-
-		const deltaTime = Date.now() - this.timeStamp;
-		if (deltaTime < this.fpsInterval) await this.wait(this.fpsInterval - deltaTime);
-		window.myLib.deltaTime = Date.now() - this.timeStamp;
-
+	run = () => {
 		requestAnimationFrame(this.run);
+
+		this.now = performance.now();
+		window.myLib.deltaTime = this.now - this.then;
+
+		if (window.myLib.deltaTime > this.fpsInterval) {
+			this.then = this.now - (window.myLib.deltaTime % this.fpsInterval);
+
+			this.scene.update();
+			this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
+
+			const lastCamPosition: Vec3 = this.scene.camera.position;
+			const lastPlayerPosition: Vec3 = this.scene.player.position;
+			this.scene.lastPlayerPos = lastPlayerPosition;
+			this.scene.lastCamPosition = lastCamPosition;
+
+			this.scene.move_player_FB(this.moveVec[0]);
+			this.scene.move_player_LR(this.moveVec[1]);
+
+			// Get distance/direction moved vector from last frame
+			const moveDeltaVector = vecA_minus_vecB(this.scene.camera.position, lastCamPosition);
+			this.scene.moveDeltaVector = moveDeltaVector;
+			this.scene.playerMoving = false;
+
+			if (this.moveVec[0] !== 0 || this.moveVec[1] !== 0) {
+				this.scene.playerMoving = true;
+				this.scene.player.set_rotation(
+					Math.atan2(moveDeltaVector[1], moveDeltaVector[0]) * (180 / Math.PI),
+					1
+				);
+			}
+		}
 	};
 
 	handleKeyDown(e: KeyboardEvent) {
