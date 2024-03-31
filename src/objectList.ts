@@ -14,7 +14,7 @@ export interface IObject {
 export interface IObjectList {
 	[id: string]: IObject;
 }
-//
+
 export const objectList: IObjectList = {
 	player: {
 		models: [new Player([0, 0, 10], [0, 0, 0])],
