@@ -12,8 +12,6 @@ export class Car extends Model {
 	}
 
 	update() {
-		this.eulers[2] += 0.02 * window.myLib.deltaTime;
-
 		this.model = mat4.create();
 		mat4.translation(this.position, this.model);
 		mat4.rotateX(this.model, degToRad(this.eulers[0]), this.model);

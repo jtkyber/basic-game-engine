@@ -21,6 +21,8 @@ export class LightMesh {
 	lightPositionArr: number[];
 	brightnessArr: number[];
 	colorValueArr: number[];
+	texture: GPUTexture;
+	textureView: GPUTextureView;
 
 	constructor(device: GPUDevice) {
 		this.device = device;
@@ -48,6 +50,14 @@ export class LightMesh {
 			this.read_mtl_file(mtl_lines);
 			this.read_obj_file(obj_lines, name);
 		}
+
+		// The buffer offsets in the bind group need to be a multiple of 256
+		// 256 divided by 4 bytes equals 64
+		this.lightPositionArr = this.lightPositionArr.concat(
+			new Array(64 - (this.lightPositionArr.length % 64)).fill(-1)
+		);
+		this.brightnessArr = this.brightnessArr.concat(new Array(64 - (this.brightnessArr.length % 64)).fill(-1));
+		this.colorValueArr = this.colorValueArr.concat(new Array(64 - (this.colorValueArr.length % 64)).fill(-1));
 
 		this.vertices = new Float32Array(
 			this.lightPositionArr.concat(this.brightnessArr).concat(this.colorValueArr)
@@ -117,8 +127,8 @@ export class LightMesh {
 					// 	...this.colorValues[this.currentLightType]
 					// );
 					this.lightPositionArr.push(...position);
-					this.lightPositionArr.push(this.brightnessValues[this.currentLightType]);
-					this.lightPositionArr.push(...this.colorValues[this.currentLightType]);
+					this.brightnessArr.push(this.brightnessValues[this.currentLightType]);
+					this.colorValueArr.push(...this.colorValues[this.currentLightType]);
 					this.lightCount++;
 				}
 				if (!this.lightPositions[name]) this.lightPositions[name] = [];

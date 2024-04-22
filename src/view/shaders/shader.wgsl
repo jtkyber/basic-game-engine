@@ -42,6 +42,7 @@ struct FragOut {
 
 const fogIntensity: f32 = 0.04;
 const fogColor = vec3f(0.0, 0.0, 0.0);
+const lightFalloff: f32 = 20.0;
 
 // Bound for each frame
 @group(0) @binding(0) var<uniform> transformUBO: TransformData;
@@ -49,10 +50,11 @@ const fogColor = vec3f(0.0, 0.0, 0.0);
 @group(0) @binding(2) var<uniform> cameraPosition: vec3f;
 @group(0) @binding(3) var<uniform> viewport: vec2f;
 
-@group(0) @binding(4) var<storage, read> lightData: LightData;
-@group(0) @binding(5) var<storage, read> lightPosition: vec3f;
-@group(0) @binding(6) var<storage, read> lightBrightness: f32;
-@group(0) @binding(7) var<storage, read> lightColor: vec3f;
+@group(0) @binding(4) var<storage, read> lightData: LightData; // Don't need this
+@group(0) @binding(5) var<storage, read> lightPositionValues: array<vec3f>;
+@group(0) @binding(6) var<storage, read> lightBrightnessValues: array<f32>;
+@group(0) @binding(7) var<storage, read> lightColorValues: array<vec3f>;
+@group(0) @binding(8) var<storage, read> lightWorldPositions: array<vec3f>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -63,12 +65,12 @@ const fogColor = vec3f(0.0, 0.0, 0.0);
 @vertex
 fn v_main(input: VertIn) -> VertOut {
     var output: VertOut;
-    let vertWorlPos = objects.model[input.instanceIndex] * vec4f(input.vertexPosition, 1.0);
+    let vertWorldPos = objects.model[input.instanceIndex] * vec4f(input.vertexPosition, 1.0);
 
-    output.position = transformUBO.projection * transformUBO.view * vertWorlPos;
+    output.position = transformUBO.projection * transformUBO.view * vertWorldPos;
     output.TextCoord = input.vertexTexCoord;
     output.cameraPos = cameraPosition.xyz;
-    output.worldPos = vertWorlPos; 
+    output.worldPos = vertWorldPos; 
     output.materialIndex = u32(input.materialIndex);
     output.vertexNormal = input.vertexNormal;
     output.materialShininess = input.materialShininess;
@@ -92,34 +94,57 @@ fn f_main(input: VertOut) -> FragOut {
 
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
 
-    let lightPos = vec3f(-5.0, -5.0, 10.0);
-    let lightDir = normalize(lightPos - input.worldPos.xyz);
-    let faceDirToCamera = normalize(input.worldPos.xyz - input.cameraPos);
-    
-    // let depthSample = textureSampleCompare(myDepthTexture, myDepthSampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), 1.0);
-
     // Ambient
-    let ka = 0.2;
+    let ka = 0.15;
     let ambientLight = textureColor.rgb * input.materialAmbient * ka;
 
-    // Diffuse
-    var diffuseColor = input.materialDiffuse;
-    if (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0) {
-        diffuseColor = textureColor.rgb;
+    var finalLight: vec3f = ambientLight;
+
+    var i: i32 = 0;
+    loop {
+        if lightBrightnessValues[i] < 0 { break; }
+        if i >= i32(arrayLength(&lightData.model)) { break; }
+        // if i == 1 { break; }
+
+        // let lightPos = lightData.model[i] * vec4f(lightPositionValues[i], 1.0);
+
+        let lightDist = abs(distance(lightWorldPositions[i], input.worldPos.xyz));
+
+        let lightRadius: f32 = 30.0 * lightBrightnessValues[i];
+
+        var s = lightDist / lightRadius;
+        if s > 1 { s = 1; }
+
+        let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
+
+        // let lightPos = vec3f(-5.0, -5.0, 10.0);
+        let lightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
+        let faceDirToCamera = normalize(input.worldPos.xyz - input.cameraPos);
+       
+        // Diffuse
+        var diffuseColor = input.materialDiffuse;
+        if (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0) {
+            diffuseColor = textureColor.rgb * lightColorValues[i];
+        }
+        
+        let diffuseAmt = (max(0.0, dot(lightDir, input.vertexNormal))) * lightIntensityAdjustment;
+        let diffuseLight = diffuseColor * diffuseAmt;
+
+        // Specular
+        let reflectedLight = reflect(lightDir, input.vertexNormal);
+        let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess) * lightIntensityAdjustment;
+        let specularLight = specularAmt * input.materialSpecular;
+
+        finalLight = finalLight + diffuseLight + specularLight;
+
+        i++;
     }
-    let diffuseAmt = max(0.0, dot(lightDir, input.vertexNormal));
-    let diffuseLight = diffuseColor * diffuseAmt;
 
-    // Specular
-    let reflectedLight = reflect(lightDir, input.vertexNormal);
-    let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess);
-    let specularLight = specularAmt * input.materialSpecular;
-
-    let finalLight = ambientLight + diffuseLight + specularLight;
-
+    // let depthSample = textureSampleCompare(myDepthTexture, myDepthSampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), 1.0);
+    
     let finalWithFog = mix(finalLight, fogColor, fogScaler);
 
-    output.color = vec4f(finalWithFog, textureColor.a);
+    output.color = vec4f(finalLight, textureColor.a);
     
     return output;
 }

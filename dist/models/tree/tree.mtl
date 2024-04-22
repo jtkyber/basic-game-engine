@@ -13,7 +13,7 @@ map_Kd ./dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-DIFFUSE.png
 map_Ns ./dist/img/tree/GenTree_1_Trunk_Limbs_AE3D_03312023-A-SMOOTH.png
 
 newmtl Material.009_-_TWIGS.001
-Ns 250.000000
+Ns 0.000000
 Ka 1.000000 1.000000 1.000000
 Kd 0.000000 0.000000 0.000000
 Ks 0.000000 0.000000 0.000000
@@ -24,7 +24,7 @@ illum 1
 map_Kd ./dist/img/tree/GenTree_1_Twigs_AE3D_03312023-A-DIFFUSE.png
 
 newmtl Material.010_-_Leaves.001
-Ns 250.000000
+Ns 50.000000
 Ka 1.000000 1.000000 1.000000
 Kd 0.000000 0.000000 0.000000
 Ks 0.300000 0.300000 0.300000
