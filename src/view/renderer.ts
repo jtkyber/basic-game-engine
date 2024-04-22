@@ -2,7 +2,7 @@ import { Mat4, Vec3, Vec4, mat4, vec4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { degToRad } from '../utils/math_stuff';
-import { one_four_by_four_four } from '../utils/matrices';
+import { inverse, one_four_by_four_four, transpose } from '../utils/matrices';
 import { LightMesh } from './light_mesh';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
@@ -34,10 +34,9 @@ export class Renderer {
 	boundingBoxBuffer: GPUBuffer;
 	cameraPosBuffer: GPUBuffer;
 	vpDimensionBuffer: GPUBuffer;
-	// lightMatrixBuffer: GPUBuffer;
 	lightDataBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
-	lightNumBuffer: GPUBuffer;
+	normalMatrixBuffer: GPUBuffer;
 
 	frameBindGroupLayout: GPUBindGroupLayout;
 	boundingBoxBindGroupLayout: GPUBindGroupLayout;
@@ -153,9 +152,9 @@ export class Renderer {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		this.lightNumBuffer = this.device.createBuffer({
-			label: 'Light Num Buffer',
-			size: 4,
+		this.normalMatrixBuffer = this.device.createBuffer({
+			label: 'Normal Matrix Buffer',
+			size: 4 * 16 * objectCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -313,6 +312,14 @@ export class Renderer {
 						hasDynamicOffset: false,
 					},
 				},
+				{
+					binding: 8,
+					visibility: GPUShaderStage.VERTEX,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
 			],
 		});
 
@@ -436,12 +443,16 @@ export class Renderer {
 						buffer: this.lightWorldPosBuffer,
 					},
 				},
+				{
+					binding: 8,
+					resource: {
+						buffer: this.normalMatrixBuffer,
+					},
+				},
 			],
 		});
 
 		this.device.queue.writeBuffer(this.lightDataBuffer, 0, this.lightMesh.data);
-
-		// console.log(this.lightMesh.vertices);
 
 		if (this.collisionDebug) {
 			this.boundingBoxBindGroup = this.device.createBindGroup({
@@ -573,13 +584,13 @@ export class Renderer {
 			lightWorldPositionsTemp.length
 		);
 
-		this.device.queue.writeBuffer(
-			this.lightDataBuffer,
-			0,
-			<ArrayBuffer>new Float32Array(this.lightMesh.data),
-			0,
-			this.lightMesh.data.length
-		);
+		// this.device.queue.writeBuffer(
+		// 	this.lightDataBuffer,
+		// 	0,
+		// 	<ArrayBuffer>new Float32Array(this.lightMesh.data),
+		// 	0,
+		// 	this.lightMesh.data.length
+		// );
 
 		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(
@@ -621,6 +632,9 @@ export class Renderer {
 		let objectsDrawn: number = 0;
 
 		for (let i: number = 0; i < objectCount; i++) {
+			const normalMatrix: Mat4 = transpose(inverse(renderables.modelTransforms.slice(i * 16, i * 16 + 16)));
+			this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>normalMatrix);
+
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
 			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
 			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);

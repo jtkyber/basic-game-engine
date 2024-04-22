@@ -28,7 +28,7 @@ struct VertOut {
     @location(0) TextCoord: vec2f,
     @location(1) worldPos: vec4f,
     @location(2) @interpolate(flat) materialIndex: u32,
-    @location(3) @interpolate(flat) vertexNormal: vec3f,
+    @location(3) @interpolate(flat) vertexNormal: vec4f,
     @location(4) @interpolate(flat) materialShininess: f32,
     @location(5) @interpolate(flat) materialSpecular: vec3f,
     @location(6) @interpolate(flat) materialAmbient: vec3f,
@@ -53,6 +53,7 @@ const lightFalloff: f32 = 20.0;
 @group(0) @binding(5) var<storage, read> lightBrightnessValues: array<f32>;
 @group(0) @binding(6) var<storage, read> lightColorValues: array<vec3f>;
 @group(0) @binding(7) var<storage, read> lightWorldPositions: array<vec3f>;
+@group(0) @binding(8) var<storage, read> normalMatrices: array<mat4x4<f32>>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -69,7 +70,7 @@ fn v_main(input: VertIn) -> VertOut {
     output.TextCoord = input.vertexTexCoord;
     output.worldPos = vertWorldPos; 
     output.materialIndex = u32(input.materialIndex);
-    output.vertexNormal = input.vertexNormal;
+    output.vertexNormal = normalMatrices[input.instanceIndex] * vec4f(input.vertexNormal, 1.0);
     output.materialShininess = input.materialShininess;
     output.materialSpecular = input.materialSpecular;
     output.materialAmbient = input.materialAmbient;
@@ -107,8 +108,7 @@ fn f_main(input: VertOut) -> FragOut {
 
         let lightRadius: f32 = 30.0 * lightBrightnessValues[i];
 
-        var s = lightDist / lightRadius;
-        if s > 1 { s = 1; }
+        var s = min(1.0, lightDist / lightRadius);
 
         let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
 
@@ -116,16 +116,16 @@ fn f_main(input: VertOut) -> FragOut {
         let faceDirToCamera = normalize(input.worldPos.xyz - cameraPosition);
        
         // Diffuse
-        var diffuseColor = input.materialDiffuse;
+        var diffuseColor = input.materialDiffuse * lightColorValues[i];
         if (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0) {
             diffuseColor = textureColor.rgb * lightColorValues[i];
         }
         
-        let diffuseAmt = (max(0.0, dot(lightDir, input.vertexNormal))) * lightIntensityAdjustment;
+        let diffuseAmt = (max(0.0, dot(lightDir, input.vertexNormal.xyz))) * lightIntensityAdjustment;
         let diffuseLight = diffuseColor * diffuseAmt;
 
         // Specular
-        let reflectedLight = reflect(lightDir, input.vertexNormal);
+        let reflectedLight = reflect(lightDir, input.vertexNormal.xyz);
         let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess) * lightIntensityAdjustment;
         let specularLight = specularAmt * input.materialSpecular;
 
