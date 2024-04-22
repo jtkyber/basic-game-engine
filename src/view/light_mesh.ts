@@ -3,7 +3,7 @@ import { objectList } from '../objectList';
 
 export class LightMesh {
 	device: GPUDevice;
-	vertices: Float32Array;
+	data: Float32Array;
 	buffer: GPUBuffer;
 	bufferLayout: GPUVertexBufferLayout;
 	currentLightType: string;
@@ -52,50 +52,24 @@ export class LightMesh {
 		}
 
 		// The buffer offsets in the bind group need to be a multiple of 256
-		// 256 divided by 4 bytes equals 64
+		// 256 divided by 4 bytes is 64
 		this.lightPositionArr = this.lightPositionArr.concat(
 			new Array(64 - (this.lightPositionArr.length % 64)).fill(-1)
 		);
 		this.brightnessArr = this.brightnessArr.concat(new Array(64 - (this.brightnessArr.length % 64)).fill(-1));
 		this.colorValueArr = this.colorValueArr.concat(new Array(64 - (this.colorValueArr.length % 64)).fill(-1));
 
-		this.vertices = new Float32Array(
-			this.lightPositionArr.concat(this.brightnessArr).concat(this.colorValueArr)
-		);
+		this.data = new Float32Array(this.lightPositionArr.concat(this.brightnessArr).concat(this.colorValueArr));
 
 		this.buffer = this.device.createBuffer({
 			label: 'Light Data Buffer',
-			size: this.vertices.byteLength,
+			size: this.data.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 			mappedAtCreation: true,
 		});
 
-		new Float32Array(this.buffer.getMappedRange()).set(this.vertices);
+		new Float32Array(this.buffer.getMappedRange()).set(this.data);
 		this.buffer.unmap();
-
-		// this.bufferLayout = {
-		// 	arrayStride: 28,
-		// 	attributes: [
-		// 		// For the position
-		// 		{
-		// 			shaderLocation: 4,
-		// 			format: 'float32x3',
-		// 			offset: 0,
-		// 		},
-		// 		// For the Brightness
-		// 		{
-		// 			shaderLocation: 5,
-		// 			format: 'float32',
-		// 			offset: 12,
-		// 		},
-		// 		// For the Color
-		// 		{
-		// 			shaderLocation: 6,
-		// 			format: 'float32x3',
-		// 			offset: 16,
-		// 		},
-		// 	],
-		// };
 	}
 
 	async read_mtl_file(lines: string[]) {
@@ -121,11 +95,6 @@ export class LightMesh {
 				const components: string[] = words.filter(n => n);
 				const position: Vec3 = [Number(components[1]), Number(components[2]), Number(components[3])];
 				for (let i: number = 0; i < objectList[name].models.length; i++) {
-					// this.tempArr.push(
-					// 	...position,
-					// 	this.brightnessValues[this.currentLightType],
-					// 	...this.colorValues[this.currentLightType]
-					// );
 					this.lightPositionArr.push(...position);
 					this.brightnessArr.push(this.brightnessValues[this.currentLightType]);
 					this.colorValueArr.push(...this.colorValues[this.currentLightType]);

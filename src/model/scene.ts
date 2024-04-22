@@ -14,6 +14,7 @@ export class Scene {
 	player: Player & any;
 	camera: Camera;
 	modelData: Float32Array;
+	cameraData: Float32Array;
 	lightData: number[];
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
@@ -29,6 +30,7 @@ export class Scene {
 
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
+		this.cameraData = new Float32Array(16);
 		this.lightData = [];
 		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;
@@ -90,8 +92,7 @@ export class Scene {
 				}
 
 				if (object.hasLights) {
-					const lights: Vec3[] = this.lightMesh.lightPositions[name];
-					for (let l: number = 0; l < lights.length; l++) {
+					for (let l: number = 0; l < this.lightMesh.lightCount; l++) {
 						for (let j: number = 0; j < 16; j++) {
 							this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
 						}

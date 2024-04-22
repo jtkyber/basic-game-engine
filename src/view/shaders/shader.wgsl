@@ -26,14 +26,13 @@ struct VertIn {
 struct VertOut {
     @builtin(position) position: vec4f,
     @location(0) TextCoord: vec2f,
-    @location(1) cameraPos: vec3f,
-    @location(2) worldPos: vec4f,
-    @location(3) @interpolate(flat) materialIndex: u32,
-    @location(4) @interpolate(flat) vertexNormal: vec3f,
-    @location(5) @interpolate(flat) materialShininess: f32,
-    @location(6) @interpolate(flat) materialSpecular: vec3f,
-    @location(7) @interpolate(flat) materialAmbient: vec3f,
-    @location(8) @interpolate(flat) materialDiffuse: vec3f,
+    @location(1) worldPos: vec4f,
+    @location(2) @interpolate(flat) materialIndex: u32,
+    @location(3) @interpolate(flat) vertexNormal: vec3f,
+    @location(4) @interpolate(flat) materialShininess: f32,
+    @location(5) @interpolate(flat) materialSpecular: vec3f,
+    @location(6) @interpolate(flat) materialAmbient: vec3f,
+    @location(7) @interpolate(flat) materialDiffuse: vec3f,
 };
 
 struct FragOut {
@@ -50,11 +49,10 @@ const lightFalloff: f32 = 20.0;
 @group(0) @binding(2) var<uniform> cameraPosition: vec3f;
 @group(0) @binding(3) var<uniform> viewport: vec2f;
 
-@group(0) @binding(4) var<storage, read> lightData: LightData; // Don't need this
-@group(0) @binding(5) var<storage, read> lightPositionValues: array<vec3f>;
-@group(0) @binding(6) var<storage, read> lightBrightnessValues: array<f32>;
-@group(0) @binding(7) var<storage, read> lightColorValues: array<vec3f>;
-@group(0) @binding(8) var<storage, read> lightWorldPositions: array<vec3f>;
+@group(0) @binding(4) var<storage, read> lightPositionValues: array<vec3f>;
+@group(0) @binding(5) var<storage, read> lightBrightnessValues: array<f32>;
+@group(0) @binding(6) var<storage, read> lightColorValues: array<vec3f>;
+@group(0) @binding(7) var<storage, read> lightWorldPositions: array<vec3f>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -69,7 +67,6 @@ fn v_main(input: VertIn) -> VertOut {
 
     output.position = transformUBO.projection * transformUBO.view * vertWorldPos;
     output.TextCoord = input.vertexTexCoord;
-    output.cameraPos = cameraPosition.xyz;
     output.worldPos = vertWorldPos; 
     output.materialIndex = u32(input.materialIndex);
     output.vertexNormal = input.vertexNormal;
@@ -90,7 +87,7 @@ fn f_main(input: VertOut) -> FragOut {
         discard;
     }
 
-    let distFromPlayer = abs(distance(input.worldPos.xyz, input.cameraPos));
+    let distFromPlayer = abs(distance(input.worldPos.xyz, cameraPosition));
 
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
 
@@ -100,13 +97,11 @@ fn f_main(input: VertOut) -> FragOut {
 
     var finalLight: vec3f = ambientLight;
 
-    var i: i32 = 0;
+    var i: u32 = 0;
     loop {
+        if i >= u32(arrayLength(&lightBrightnessValues)) { break; }
         if lightBrightnessValues[i] < 0 { break; }
-        if i >= i32(arrayLength(&lightData.model)) { break; }
         // if i == 1 { break; }
-
-        // let lightPos = lightData.model[i] * vec4f(lightPositionValues[i], 1.0);
 
         let lightDist = abs(distance(lightWorldPositions[i], input.worldPos.xyz));
 
@@ -117,9 +112,8 @@ fn f_main(input: VertOut) -> FragOut {
 
         let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
 
-        // let lightPos = vec3f(-5.0, -5.0, 10.0);
         let lightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
-        let faceDirToCamera = normalize(input.worldPos.xyz - input.cameraPos);
+        let faceDirToCamera = normalize(input.worldPos.xyz - cameraPosition);
        
         // Diffuse
         var diffuseColor = input.materialDiffuse;
@@ -140,9 +134,7 @@ fn f_main(input: VertOut) -> FragOut {
         i++;
     }
 
-    // let depthSample = textureSampleCompare(myDepthTexture, myDepthSampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), 1.0);
-    
-    let finalWithFog = mix(finalLight, fogColor, fogScaler);
+    // let finalWithFog = mix(finalLight, fogColor, fogScaler);
 
     output.color = vec4f(finalLight, textureColor.a);
     

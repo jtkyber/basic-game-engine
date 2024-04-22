@@ -1,4 +1,4 @@
-import { Vec3, Vec4, mat4, vec4 } from 'wgpu-matrix';
+import { Mat4, Vec3, Vec4, mat4, vec4 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { degToRad } from '../utils/math_stuff';
@@ -34,9 +34,10 @@ export class Renderer {
 	boundingBoxBuffer: GPUBuffer;
 	cameraPosBuffer: GPUBuffer;
 	vpDimensionBuffer: GPUBuffer;
-	lightMatrixBuffer: GPUBuffer;
+	// lightMatrixBuffer: GPUBuffer;
 	lightDataBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
+	lightNumBuffer: GPUBuffer;
 
 	frameBindGroupLayout: GPUBindGroupLayout;
 	boundingBoxBindGroupLayout: GPUBindGroupLayout;
@@ -128,11 +129,11 @@ export class Renderer {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		this.lightMatrixBuffer = this.device.createBuffer({
-			label: 'Light Matrix Buffer',
-			size: 4 * 16 * this.lightMesh.lightCount || 4,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		});
+		// this.lightMatrixBuffer = this.device.createBuffer({
+		// 	label: 'Light Matrix Buffer',
+		// 	size: 4 * 16 * this.lightMesh.lightCount || 4,
+		// 	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		// });
 
 		this.lightWorldPosBuffer = this.device.createBuffer({
 			label: 'Light Pos Buffer',
@@ -148,7 +149,13 @@ export class Renderer {
 
 		this.lightDataBuffer = this.device.createBuffer({
 			label: 'Light Data Buffer',
-			size: this.lightMesh.vertices.byteLength,
+			size: this.lightMesh.data.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightNumBuffer = this.device.createBuffer({
+			label: 'Light Num Buffer',
+			size: 4,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -266,7 +273,7 @@ export class Renderer {
 				},
 				{
 					binding: 2,
-					visibility: GPUShaderStage.VERTEX,
+					visibility: GPUShaderStage.FRAGMENT,
 					buffer: {},
 				},
 				{
@@ -300,14 +307,6 @@ export class Renderer {
 				},
 				{
 					binding: 7,
-					visibility: GPUShaderStage.FRAGMENT,
-					buffer: {
-						type: 'read-only-storage',
-						hasDynamicOffset: false,
-					},
-				},
-				{
-					binding: 8,
 					visibility: GPUShaderStage.FRAGMENT,
 					buffer: {
 						type: 'read-only-storage',
@@ -410,20 +409,13 @@ export class Renderer {
 				{
 					binding: 4,
 					resource: {
-						buffer: this.lightMatrixBuffer,
-					},
-				},
-
-				{
-					binding: 5,
-					resource: {
 						buffer: this.lightDataBuffer,
 						offset: 0,
 						size: lightPosByteSize,
 					},
 				},
 				{
-					binding: 6,
+					binding: 5,
 					resource: {
 						buffer: this.lightDataBuffer,
 						offset: lightPosByteSize,
@@ -431,7 +423,7 @@ export class Renderer {
 					},
 				},
 				{
-					binding: 7,
+					binding: 6,
 					resource: {
 						buffer: this.lightDataBuffer,
 						offset: lightPosByteSize + lightBrightnessByteSize,
@@ -439,7 +431,7 @@ export class Renderer {
 					},
 				},
 				{
-					binding: 8,
+					binding: 7,
 					resource: {
 						buffer: this.lightWorldPosBuffer,
 					},
@@ -447,7 +439,7 @@ export class Renderer {
 			],
 		});
 
-		this.device.queue.writeBuffer(this.lightDataBuffer, 0, this.lightMesh.vertices);
+		this.device.queue.writeBuffer(this.lightDataBuffer, 0, this.lightMesh.data);
 
 		// console.log(this.lightMesh.vertices);
 
@@ -550,7 +542,7 @@ export class Renderer {
 
 	render = (renderables: RenderData, cameraPosition: Vec3) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 50);
+		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 100);
 		const view = renderables.viewTransform;
 
 		// Pass matrices into the same buffer
@@ -561,14 +553,6 @@ export class Renderer {
 			<ArrayBuffer>renderables.modelTransforms,
 			0,
 			renderables.modelTransforms.length
-		);
-
-		this.device.queue.writeBuffer(
-			this.lightMatrixBuffer,
-			0,
-			<ArrayBuffer>renderables.lightTransforms,
-			0,
-			renderables.lightTransforms.length
 		);
 
 		const lightWorldPositionsTemp: number[] = [];
@@ -587,6 +571,14 @@ export class Renderer {
 			<ArrayBuffer>new Float32Array(lightWorldPositionsTemp),
 			0,
 			lightWorldPositionsTemp.length
+		);
+
+		this.device.queue.writeBuffer(
+			this.lightDataBuffer,
+			0,
+			<ArrayBuffer>new Float32Array(this.lightMesh.data),
+			0,
+			this.lightMesh.data.length
 		);
 
 		if (this.collisionDebug) {
@@ -628,31 +620,12 @@ export class Renderer {
 
 		let objectsDrawn: number = 0;
 
-		// Models
-		// const lightPos: Float32Array = new Float32Array(this.lightMesh.lightPositionArr);
-		// const brightness: Float32Array = new Float32Array(this.lightMesh.brightnessArr);
-		// const color: Float32Array = new Float32Array(this.lightMesh.colorValueArr);
-		// console.log(lightPos.length, brightness.length, color.length);
-		// for (let i: number = 0; i < this.lightMesh.lightCount; i++) {
-		// this.device.queue.writeBuffer(this.lightDataBuffer, 0, lightPos, i * 3, 3);
-		// this.device.queue.writeBuffer(this.lightDataBuffer, 12, brightness, i * 1, 1);
-		// this.device.queue.writeBuffer(this.lightDataBuffer, 16, color, i * 3, 3);
-
-		// this.device.queue.writeBuffer(
-		// 	this.lightMatrixBuffer,
-		// 	0,
-		// 	<ArrayBuffer>renderables.lightTransforms,
-		// 	i * 16,
-		// 	16
-		// );
-
 		for (let i: number = 0; i < objectCount; i++) {
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
 			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
 			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);
 			objectsDrawn++;
 		}
-		// }
 
 		if (this.collisionDebug) {
 			this.renderPass.setPipeline(this.boundingBoxPipeline);
