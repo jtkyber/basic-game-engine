@@ -14,7 +14,6 @@ export class Scene {
 	player: Player & any;
 	camera: Camera;
 	modelData: Float32Array;
-	cameraData: Float32Array;
 	lightData: number[];
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
@@ -30,7 +29,6 @@ export class Scene {
 
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
-		this.cameraData = new Float32Array(16);
 		this.lightData = [];
 		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;

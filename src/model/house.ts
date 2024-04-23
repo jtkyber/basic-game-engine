@@ -21,7 +21,6 @@ export class House extends Model {
 		// mat4.scale(this.model, [2, 2, 2], this.model);
 		// mat4.rotateX(this.model, degToRad(90), this.model);
 		// mat4.rotateY(this.model, degToRad(90), this.model);
-		// mat4.rotateZ(this.model, degToRad(this.eulers[2]), this.model);
 		// Need to translate before rotating in WebGPU
 		// even though logically it should be the other way around
 	}

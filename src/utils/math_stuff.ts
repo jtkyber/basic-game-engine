@@ -79,3 +79,13 @@ export function vec3_mean(vecs: Vec3[]): Vec3 {
 
 	return [newVec[0] / vecNum, newVec[1] / vecNum, newVec[2] / vecNum];
 }
+
+export function convertTo2dArray(arr: Float32Array): Vec3[] {
+	const arrTemp: Vec3[] = [];
+
+	for (let i = 0; i < arr.length; i += 3) {
+		arrTemp.push([arr[i], arr[i + 1], arr[i + 2]]);
+	}
+
+	return arrTemp;
+}

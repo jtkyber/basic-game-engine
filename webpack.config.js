@@ -24,6 +24,16 @@ module.exports = {
 				},
 			},
 			{
+				test: /\.js$/,
+				exclude: /node_modules/,
+				use: {
+					loader: 'babel-loader',
+					options: {
+						presets: ['@babel/preset-env'],
+					},
+				},
+			},
+			{
 				test: /\.wgsl$/,
 				use: {
 					loader: 'ts-shader-loader',
@@ -32,6 +42,6 @@ module.exports = {
 		],
 	},
 	resolve: {
-		extensions: ['.ts'],
+		extensions: ['.ts', '.js'],
 	},
 };

@@ -28,7 +28,7 @@ struct VertOut {
     @location(0) TextCoord: vec2f,
     @location(1) worldPos: vec4f,
     @location(2) @interpolate(flat) materialIndex: u32,
-    @location(3) @interpolate(flat) vertexNormal: vec4f,
+    @location(3) @interpolate(flat) vertexNormal: vec3f,
     @location(4) @interpolate(flat) materialShininess: f32,
     @location(5) @interpolate(flat) materialSpecular: vec3f,
     @location(6) @interpolate(flat) materialAmbient: vec3f,
@@ -61,6 +61,14 @@ const lightFalloff: f32 = 20.0;
 @group(1) @binding(2) var myDepthTexture: texture_depth_2d;
 @group(1) @binding(3) var myDepthSampler: sampler_comparison;
 
+fn extractMat3FromMat4(m: mat4x4<f32>) -> mat3x3<f32> {
+    return mat3x3(
+        m[0].xyz,
+        m[1].xyz,
+        m[2].xyz
+    );
+}
+
 @vertex
 fn v_main(input: VertIn) -> VertOut {
     var output: VertOut;
@@ -70,7 +78,7 @@ fn v_main(input: VertIn) -> VertOut {
     output.TextCoord = input.vertexTexCoord;
     output.worldPos = vertWorldPos; 
     output.materialIndex = u32(input.materialIndex);
-    output.vertexNormal = normalMatrices[input.instanceIndex] * vec4f(input.vertexNormal, 1.0);
+    output.vertexNormal = extractMat3FromMat4(normalMatrices[input.instanceIndex]) * input.vertexNormal;
     output.materialShininess = input.materialShininess;
     output.materialSpecular = input.materialSpecular;
     output.materialAmbient = input.materialAmbient;
@@ -121,11 +129,11 @@ fn f_main(input: VertOut) -> FragOut {
             diffuseColor = textureColor.rgb * lightColorValues[i];
         }
         
-        let diffuseAmt = (max(0.0, dot(lightDir, input.vertexNormal.xyz))) * lightIntensityAdjustment;
+        let diffuseAmt = (max(0.0, dot(lightDir, input.vertexNormal))) * lightIntensityAdjustment;
         let diffuseLight = diffuseColor * diffuseAmt;
 
         // Specular
-        let reflectedLight = reflect(lightDir, input.vertexNormal.xyz);
+        let reflectedLight = reflect(lightDir, input.vertexNormal);
         let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess) * lightIntensityAdjustment;
         let specularLight = specularAmt * input.materialSpecular;
 

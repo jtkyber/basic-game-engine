@@ -1,8 +1,7 @@
-import { Mat4, Vec3, Vec4, mat4, vec4 } from 'wgpu-matrix';
+import { Mat4, Vec3, mat4, utils } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
-import { degToRad } from '../utils/math_stuff';
-import { inverse, one_four_by_four_four, transpose } from '../utils/matrices';
+import { one_four_by_four_four } from '../utils/matrices';
 import { LightMesh } from './light_mesh';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
@@ -77,7 +76,7 @@ export class Renderer {
 		this.collisionDebug = collisionDebug;
 		this.canvas = canvas;
 		this.context = <GPUCanvasContext>canvas.getContext('webgpu');
-		this.fov = degToRad(60);
+		this.fov = utils.degToRad(60);
 		this.aspect = this.canvas.width / this.canvas.height;
 		this.objectMeshes = [];
 		this.objectMaterials = [];
@@ -632,7 +631,9 @@ export class Renderer {
 		let objectsDrawn: number = 0;
 
 		for (let i: number = 0; i < objectCount; i++) {
-			const normalMatrix: Mat4 = transpose(inverse(renderables.modelTransforms.slice(i * 16, i * 16 + 16)));
+			const normalMatrix: Mat4 = mat4.transpose(
+				mat4.invert(renderables.modelTransforms.slice(i * 16, i * 16 + 16))
+			);
 			this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>normalMatrix);
 
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
