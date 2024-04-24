@@ -37,16 +37,16 @@ export const objectList: IObjectList = {
 		hasBoundingBox: false,
 		hasLights: false,
 	},
-	car: {
-		models: [new Car([0, -10, 0], [0, 0, -90])],
-		hasBoundingBox: false,
-		hasLights: false,
-	},
-	// sphere: {
-	// 	models: [new Sphere([2, -9.5, 0], [0, 0, 0])],
+	// car: {
+	// 	models: [new Car([0, -10, 0], [0, 0, -90])],
 	// 	hasBoundingBox: false,
 	// 	hasLights: false,
 	// },
+	sphere: {
+		models: [new Sphere([2, -9.5, 0], [0, 0, 0])],
+		hasBoundingBox: false,
+		hasLights: false,
+	},
 };
 
 export const objectCount = Object.keys(objectList).reduce((acc: number, name: string) => {
