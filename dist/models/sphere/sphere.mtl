@@ -6,5 +6,5 @@ Ka 1 1 1
 Kd 0.80000001192093 0.80000001192093 0.80000001192093
 map_Kd ./dist/img/sphere/sphere.jpg
 Ks 1.0 1.0 1.0
-Ns 100
+Ns 150
 illum 7
