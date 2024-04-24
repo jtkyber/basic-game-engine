@@ -530,7 +530,7 @@ export class Renderer {
 
 	render = (renderables: RenderData, cameraPosition: Vec3) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 100);
+		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 70);
 		const view = renderables.viewTransform;
 
 		// Pass matrices into the same buffer

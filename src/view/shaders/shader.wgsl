@@ -35,7 +35,7 @@ struct FragOut {
     @location(0) color: vec4f,
 };
 
-const fogIntensity: f32 = 0.04;
+const fogIntensity: f32 = 0.03;
 const fogColor = vec3f(0.0, 0.0, 0.0);
 const lightFalloff: f32 = 30.0;
 
@@ -140,9 +140,11 @@ fn f_main(input: VertOut) -> FragOut {
         i++;
     }
 
-    // let finalWithFog = mix(finaslLight, fogColor, fogScaler);
+    let finalWithFog = mix(finalLight + ambientLight, fogColor, fogScaler);
 
-    output.color = vec4f(finalLight + ambientLight, textureColor.a);
+    output.color = vec4f(finalWithFog, textureColor.a);
+    // output.color = vec4f(finalLight + ambientLight, textureColor.a);
+    // output.color = vec4f(textureColor);
     
     return output;
 }
