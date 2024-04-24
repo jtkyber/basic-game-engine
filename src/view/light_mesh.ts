@@ -53,13 +53,13 @@ export class LightMesh {
 
 		// The buffer offsets in the bind group need to be a multiple of 256
 		// 256 divided by 4 bytes is 64
-		this.lightPositionArr = this.lightPositionArr.concat(
-			new Array(64 - (this.lightPositionArr.length % 64)).fill(-1)
-		);
-		this.brightnessArr = this.brightnessArr.concat(new Array(64 - (this.brightnessArr.length % 64)).fill(-1));
-		this.colorValueArr = this.colorValueArr.concat(new Array(64 - (this.colorValueArr.length % 64)).fill(-1));
+		// this.lightPositionArr = this.lightPositionArr.concat(
+		// 	new Array(64 - (this.lightPositionArr.length % 64)).fill(-1)
+		// );
+		// this.brightnessArr = this.brightnessArr.concat(new Array(64 - (this.brightnessArr.length % 64)).fill(-1));
+		// this.colorValueArr = this.colorValueArr.concat(new Array(64 - (this.colorValueArr.length % 64)).fill(-1));
 
-		this.data = new Float32Array(this.lightPositionArr.concat(this.brightnessArr).concat(this.colorValueArr));
+		this.data = new Float32Array(this.brightnessArr.concat(this.colorValueArr));
 
 		this.buffer = this.device.createBuffer({
 			label: 'Light Data Buffer',
@@ -97,7 +97,7 @@ export class LightMesh {
 				for (let i: number = 0; i < objectList[name].models.length; i++) {
 					this.lightPositionArr.push(...position);
 					this.brightnessArr.push(this.brightnessValues[this.currentLightType]);
-					this.colorValueArr.push(...this.colorValues[this.currentLightType]);
+					this.colorValueArr.push(...this.colorValues[this.currentLightType], 0);
 					this.lightCount++;
 				}
 				if (!this.lightPositions[name]) this.lightPositions[name] = [];

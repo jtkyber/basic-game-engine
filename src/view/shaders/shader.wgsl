@@ -7,10 +7,6 @@ struct ObjectData {
     model: array<mat4x4<f32>>,
 };
 
-struct LightData {
-    model: array<mat4x4<f32>>,
-};
-
 struct VertIn {
     @location(0) vertexPosition: vec3f,
     @location(1) vertexTexCoord: vec2f,
@@ -41,7 +37,7 @@ struct FragOut {
 
 const fogIntensity: f32 = 0.04;
 const fogColor = vec3f(0.0, 0.0, 0.0);
-const lightFalloff: f32 = 20.0;
+const lightFalloff: f32 = 30.0;
 
 // Bound for each frame
 @group(0) @binding(0) var<uniform> transformUBO: TransformData;
@@ -49,11 +45,10 @@ const lightFalloff: f32 = 20.0;
 @group(0) @binding(2) var<uniform> cameraPosition: vec3f;
 @group(0) @binding(3) var<uniform> viewport: vec2f;
 
-@group(0) @binding(4) var<storage, read> lightPositionValues: array<vec3f>;
-@group(0) @binding(5) var<storage, read> lightBrightnessValues: array<f32>;
-@group(0) @binding(6) var<storage, read> lightColorValues: array<vec3f>;
-@group(0) @binding(7) var<storage, read> lightWorldPositions: array<vec3f>;
-@group(0) @binding(8) var<storage, read> normalMatrices: array<mat4x4<f32>>;
+@group(0) @binding(4) var<storage, read> lightBrightnessValues: array<f32>;
+@group(0) @binding(5) var<storage, read> lightColorValues: array<vec3f>;
+@group(0) @binding(6) var<storage, read> lightWorldPositions: array<vec3f>;
+@group(0) @binding(7) var<storage, read> normalMatrices: array<mat4x4<f32>>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -104,19 +99,22 @@ fn f_main(input: VertOut) -> FragOut {
     let ka = 0.15;
     let ambientLight = textureColor.rgb * input.materialAmbient * ka;
 
-    var finalLight: vec3f = ambientLight;
+    var finalLight: vec3f = vec3f(0.0, 0.0, 0.0);
 
     var i: u32 = 0;
     loop {
-        if i >= u32(arrayLength(&lightBrightnessValues)) { break; }
-        if lightBrightnessValues[i] < 0 { break; }
-        // if i == 1 { break; }
+        if i >= arrayLength(&lightWorldPositions) { break; }
 
         let lightDist = abs(distance(lightWorldPositions[i], input.worldPos.xyz));
 
-        let lightRadius: f32 = 30.0 * lightBrightnessValues[i];
+        let lightRadius: f32 = 20.0 * lightBrightnessValues[i];
 
-        var s = min(1.0, lightDist / lightRadius);
+        // let s = min(1.0, lightDist / lightRadius);
+        let s = lightDist / lightRadius;
+        if (s >= 1.0) { 
+            i++;
+            continue; 
+        }
 
         let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
 
@@ -135,16 +133,16 @@ fn f_main(input: VertOut) -> FragOut {
         // Specular
         let reflectedLight = reflect(lightDir, input.vertexNormal);
         let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess) * lightIntensityAdjustment;
-        let specularLight = specularAmt * input.materialSpecular;
+        let specularLight = specularAmt * mix(input.materialSpecular, diffuseColor, 1.0);
 
-        finalLight = finalLight + diffuseLight + specularLight;
+        finalLight += diffuseLight + specularLight;
 
         i++;
     }
 
-    // let finalWithFog = mix(finalLight, fogColor, fogScaler);
+    // let finalWithFog = mix(finaslLight, fogColor, fogScaler);
 
-    output.color = vec4f(finalLight, textureColor.a);
+    output.color = vec4f(finalLight + ambientLight, textureColor.a);
     
     return output;
 }

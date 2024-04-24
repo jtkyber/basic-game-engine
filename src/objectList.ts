@@ -18,7 +18,7 @@ export interface IObjectList {
 
 export const objectList: IObjectList = {
 	player: {
-		models: [new Player([0, 0, 10], [0, 0, 0])],
+		models: [new Player([-5, -9.5, 0], [0, 0, 0])],
 		hasBoundingBox: true,
 		hasLights: false,
 	},
@@ -38,15 +38,15 @@ export const objectList: IObjectList = {
 		hasLights: false,
 	},
 	// car: {
-	// 	models: [new Car([-2, -4, 0], [0, 0, -45])],
+	// 	models: [new Car([0, -10, 0], [0, 0, -90])],
 	// 	hasBoundingBox: false,
 	// 	hasLights: false,
 	// },
-	// sphere: {
-	// 	models: [new Sphere([2, -4, 0], [0, 0, -45])],
-	// 	hasBoundingBox: false,
-	// 	hasLights: false,
-	// },
+	sphere: {
+		models: [new Sphere([2, -9.5, 0], [0, 0, 0])],
+		hasBoundingBox: false,
+		hasLights: false,
+	},
 };
 
 export const objectCount = Object.keys(objectList).reduce((acc: number, name: string) => {

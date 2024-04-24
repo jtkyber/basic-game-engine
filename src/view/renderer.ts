@@ -33,7 +33,8 @@ export class Renderer {
 	boundingBoxBuffer: GPUBuffer;
 	cameraPosBuffer: GPUBuffer;
 	vpDimensionBuffer: GPUBuffer;
-	lightDataBuffer: GPUBuffer;
+	lightBrightnessBuffer: GPUBuffer;
+	lightColorBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
 	normalMatrixBuffer: GPUBuffer;
 
@@ -127,27 +128,21 @@ export class Renderer {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		// this.lightMatrixBuffer = this.device.createBuffer({
-		// 	label: 'Light Matrix Buffer',
-		// 	size: 4 * 16 * this.lightMesh.lightCount || 4,
-		// 	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		// });
-
 		this.lightWorldPosBuffer = this.device.createBuffer({
 			label: 'Light Pos Buffer',
-			size: 4 * 4 * this.lightMesh.lightCount || 4,
+			size: 4 * 4 * this.lightMesh.lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		// this.lightMatrixBuffer = this.device.createBuffer({
-		// 	label: 'Light Matrix Buffer',
-		// 	size: 4 * 16 || 4,
-		// 	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		// });
-
-		this.lightDataBuffer = this.device.createBuffer({
+		this.lightBrightnessBuffer = this.device.createBuffer({
 			label: 'Light Data Buffer',
-			size: this.lightMesh.data.byteLength,
+			size: 4 * this.lightMesh.lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightColorBuffer = this.device.createBuffer({
+			label: 'Light Data Buffer',
+			size: 4 * 4 * this.lightMesh.lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -159,7 +154,7 @@ export class Renderer {
 
 		this.cameraPosBuffer = this.device.createBuffer({
 			label: 'CameraPos Buffer',
-			size: 4 * 3,
+			size: 4 * 4,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
@@ -305,14 +300,6 @@ export class Renderer {
 				},
 				{
 					binding: 7,
-					visibility: GPUShaderStage.FRAGMENT,
-					buffer: {
-						type: 'read-only-storage',
-						hasDynamicOffset: false,
-					},
-				},
-				{
-					binding: 8,
 					visibility: GPUShaderStage.VERTEX,
 					buffer: {
 						type: 'read-only-storage',
@@ -378,11 +365,9 @@ export class Renderer {
 	}
 
 	async makeBindGroup() {
-		const lightPosByteSize: number = this.lightMesh.lightPositionArr.length * 4;
+		// const lightBrightnessByteSize: number = this.lightMesh.brightnessArr.length * 4;
 
-		const lightBrightnessByteSize: number = this.lightMesh.brightnessArr.length * 4;
-
-		const lightColorByteSize: number = this.lightMesh.colorValueArr.length * 4;
+		// const lightColorByteSize: number = this.lightMesh.colorValueArr.length * 4;
 
 		this.frameBindGroup = this.device.createBindGroup({
 			label: 'Frame Bind Group',
@@ -415,35 +400,23 @@ export class Renderer {
 				{
 					binding: 4,
 					resource: {
-						buffer: this.lightDataBuffer,
-						offset: 0,
-						size: lightPosByteSize,
+						buffer: this.lightBrightnessBuffer,
 					},
 				},
 				{
 					binding: 5,
 					resource: {
-						buffer: this.lightDataBuffer,
-						offset: lightPosByteSize,
-						size: lightBrightnessByteSize,
+						buffer: this.lightColorBuffer,
 					},
 				},
 				{
 					binding: 6,
 					resource: {
-						buffer: this.lightDataBuffer,
-						offset: lightPosByteSize + lightBrightnessByteSize,
-						size: lightColorByteSize,
-					},
-				},
-				{
-					binding: 7,
-					resource: {
 						buffer: this.lightWorldPosBuffer,
 					},
 				},
 				{
-					binding: 8,
+					binding: 7,
 					resource: {
 						buffer: this.normalMatrixBuffer,
 					},
@@ -451,7 +424,12 @@ export class Renderer {
 			],
 		});
 
-		this.device.queue.writeBuffer(this.lightDataBuffer, 0, this.lightMesh.data);
+		this.device.queue.writeBuffer(
+			this.lightBrightnessBuffer,
+			0,
+			new Float32Array(this.lightMesh.brightnessArr)
+		);
+		this.device.queue.writeBuffer(this.lightColorBuffer, 0, new Float32Array(this.lightMesh.colorValueArr));
 
 		if (this.collisionDebug) {
 			this.boundingBoxBindGroup = this.device.createBindGroup({
@@ -571,7 +549,8 @@ export class Renderer {
 				...one_four_by_four_four(
 					new Float32Array(this.lightMesh.lightPositionArr.slice(i * 3, i * 3 + 3)),
 					renderables.lightTransforms.slice(i * 16, i * 16 + 16)
-				)
+				),
+				0
 			);
 		}
 
@@ -582,14 +561,6 @@ export class Renderer {
 			0,
 			lightWorldPositionsTemp.length
 		);
-
-		// this.device.queue.writeBuffer(
-		// 	this.lightDataBuffer,
-		// 	0,
-		// 	<ArrayBuffer>new Float32Array(this.lightMesh.data),
-		// 	0,
-		// 	this.lightMesh.data.length
-		// );
 
 		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(
@@ -604,12 +575,25 @@ export class Renderer {
 		this.device.queue.writeBuffer(this.uniformBuffer, 0, <ArrayBuffer>view);
 		this.device.queue.writeBuffer(this.uniformBuffer, 64, <ArrayBuffer>projection);
 
-		this.device.queue.writeBuffer(this.cameraPosBuffer, 0, <ArrayBuffer>new Float32Array(cameraPosition));
+		this.device.queue.writeBuffer(
+			this.cameraPosBuffer,
+			0,
+			<ArrayBuffer>new Float32Array([...cameraPosition, 0])
+		);
 		this.device.queue.writeBuffer(
 			this.vpDimensionBuffer,
 			0,
 			<ArrayBuffer>new Float32Array([this.canvas.width, this.canvas.height])
 		);
+
+		const normalMatrixArr: number[] = [];
+		for (let i: number = 0; i < objectCount; i++) {
+			normalMatrixArr.push(
+				...mat4.transpose(mat4.invert(renderables.modelTransforms.slice(i * 16, i * 16 + 16)))
+			);
+		}
+
+		this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>new Float32Array(normalMatrixArr));
 
 		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
 		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();
@@ -631,11 +615,6 @@ export class Renderer {
 		let objectsDrawn: number = 0;
 
 		for (let i: number = 0; i < objectCount; i++) {
-			const normalMatrix: Mat4 = mat4.transpose(
-				mat4.invert(renderables.modelTransforms.slice(i * 16, i * 16 + 16))
-			);
-			this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>normalMatrix);
-
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
 			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
 			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);
