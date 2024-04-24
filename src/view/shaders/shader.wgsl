@@ -133,7 +133,7 @@ fn f_main(input: VertOut) -> FragOut {
         // Specular
         let reflectedLight = reflect(lightDir, input.vertexNormal);
         let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess) * lightIntensityAdjustment;
-        let specularLight = specularAmt * mix(input.materialSpecular, diffuseColor, 1.0);
+        let specularLight = specularAmt * input.materialSpecular * diffuseColor;
 
         finalLight += diffuseLight + specularLight;
 
