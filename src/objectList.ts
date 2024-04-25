@@ -23,7 +23,7 @@ export const objectList: IObjectList = {
 		hasLights: false,
 	},
 	house: {
-		models: [new House([13, -10, 0], [0, 0, 0])],
+		models: [new House([14, -10, 0], [0, 0, 0])],
 		hasBoundingBox: true,
 		hasLights: true,
 	},
