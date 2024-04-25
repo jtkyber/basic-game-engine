@@ -1,12 +1,14 @@
-import { Mat4, Vec3, mat4, utils } from 'wgpu-matrix';
+import { Mat4, Vec3, mat4, utils, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { one_four_by_four_four } from '../utils/matrices';
+import { CubeMaterial } from './cube_material';
 import { LightMesh } from './light_mesh';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';
 import shader from './shaders/shader.wgsl';
+import skyShader from './shaders/skyShader.wgsl';
 import { TriangleMesh } from './triangle_mesh';
 
 export class Renderer {
@@ -25,6 +27,7 @@ export class Renderer {
 
 	// Shaders
 	shaderModule: GPUShaderModule;
+	skyShaderModule: GPUShaderModule;
 	boundingBoxShaderModule: GPUShaderModule;
 
 	// Pipeline Stuff
@@ -37,15 +40,19 @@ export class Renderer {
 	lightColorBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
 	normalMatrixBuffer: GPUBuffer;
+	parameterBuffer: GPUBuffer;
 
 	frameBindGroupLayout: GPUBindGroupLayout;
+	skyFrameBindGroupLayout: GPUBindGroupLayout;
 	boundingBoxBindGroupLayout: GPUBindGroupLayout;
 	materialBindGroupLayout: GPUBindGroupLayout;
 
 	frameBindGroup: GPUBindGroup;
+	skyFrameBindGroup: GPUBindGroup;
 	boundingBoxBindGroup: GPUBindGroup;
 
 	pipeline: GPURenderPipeline;
+	skyPipeline: GPURenderPipeline;
 	boundingBoxPipeline: GPURenderPipeline;
 	shadowPipeline: GPURenderPipeline;
 
@@ -60,6 +67,7 @@ export class Renderer {
 
 	// Materials
 	quadMaterial: Material;
+	skyMaterial: CubeMaterial;
 	objectMaterials: Material[];
 
 	// Projection Matrix Stuff
@@ -96,6 +104,9 @@ export class Renderer {
 		this.device = <GPUDevice>await this.adapter.requestDevice();
 		this.format = <GPUTextureFormat>navigator.gpu.getPreferredCanvasFormat();
 		this.shaderModule = <GPUShaderModule>this.device.createShaderModule({ label: 'shader', code: shader });
+		this.skyShaderModule = <GPUShaderModule>(
+			this.device.createShaderModule({ label: 'skyShader', code: skyShader })
+		);
 		this.boundingBoxShaderModule = <GPUShaderModule>(
 			this.device.createShaderModule({ label: 'bounding box shader', code: boundingBoxShader })
 		);
@@ -164,6 +175,12 @@ export class Renderer {
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
+		this.parameterBuffer = this.device.createBuffer({
+			label: 'Parameter Buffer',
+			size: 4 * 4 * 3,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
 		if (this.collisionDebug) {
 			this.boundingBoxBuffer = this.device.createBuffer({
 				// values in a 4x4 matrix * bytes per value * # of matrices
@@ -174,6 +191,17 @@ export class Renderer {
 		}
 
 		this.triangleMesh = new TriangleMesh(this.device);
+
+		const urls = [
+			'dist/img/sky/back.png', //x+
+			'dist/img/sky/front.png', //x-
+			'dist/img/sky/left.png', //y+
+			'dist/img/sky/right.png', //y-
+			'dist/img/sky/top.png', //z+
+			'dist/img/sky/bottom.png', //z-
+		];
+		this.skyMaterial = new CubeMaterial();
+		await this.skyMaterial.initialize(this.device, urls);
 
 		let objectTotal: number = 0;
 		for (let i: number = 0; i < Object.keys(objectList).length; i++) {
@@ -309,6 +337,31 @@ export class Renderer {
 			],
 		});
 
+		this.skyFrameBindGroupLayout = <GPUBindGroupLayout>this.device.createBindGroupLayout({
+			label: 'skyFrameBindGroupLayout',
+			entries: [
+				{
+					binding: 0,
+					visibility: GPUShaderStage.VERTEX,
+					buffer: {
+						type: 'uniform',
+					},
+				},
+				{
+					binding: 1,
+					visibility: GPUShaderStage.FRAGMENT,
+					texture: {
+						viewDimension: 'cube',
+					},
+				},
+				{
+					binding: 2,
+					visibility: GPUShaderStage.FRAGMENT,
+					sampler: {},
+				},
+			],
+		});
+
 		if (this.collisionDebug) {
 			this.boundingBoxBindGroupLayout = <GPUBindGroupLayout>this.device.createBindGroupLayout({
 				label: 'bounding box bind group layout',
@@ -365,10 +418,6 @@ export class Renderer {
 	}
 
 	async makeBindGroup() {
-		// const lightBrightnessByteSize: number = this.lightMesh.brightnessArr.length * 4;
-
-		// const lightColorByteSize: number = this.lightMesh.colorValueArr.length * 4;
-
 		this.frameBindGroup = this.device.createBindGroup({
 			label: 'Frame Bind Group',
 			layout: this.frameBindGroupLayout,
@@ -420,6 +469,27 @@ export class Renderer {
 					resource: {
 						buffer: this.normalMatrixBuffer,
 					},
+				},
+			],
+		});
+
+		this.skyFrameBindGroup = this.device.createBindGroup({
+			label: 'skyFrameBindGroup',
+			layout: this.skyFrameBindGroupLayout,
+			entries: [
+				{
+					binding: 0,
+					resource: {
+						buffer: this.parameterBuffer,
+					},
+				},
+				{
+					binding: 1,
+					resource: this.skyMaterial.view,
+				},
+				{
+					binding: 2,
+					resource: this.skyMaterial.sampler,
 				},
 			],
 		});
@@ -479,6 +549,29 @@ export class Renderer {
 			depthStencil: this.depthStencilState,
 		});
 
+		this.skyPipeline = <GPURenderPipeline>this.device.createRenderPipeline({
+			layout: this.device.createPipelineLayout({
+				bindGroupLayouts: [this.skyFrameBindGroupLayout],
+			}),
+			vertex: {
+				module: this.skyShaderModule,
+				entryPoint: 'v_main',
+			},
+			fragment: {
+				module: this.skyShaderModule,
+				entryPoint: 'f_main',
+				targets: [
+					{
+						format: this.format,
+					},
+				],
+			},
+			primitive: {
+				topology: 'triangle-list',
+			},
+			depthStencil: this.depthStencilState,
+		});
+
 		if (this.collisionDebug) {
 			this.boundingBoxPipeline = <GPURenderPipeline>this.device.createRenderPipeline({
 				label: 'bounding box pipeline',
@@ -528,10 +621,58 @@ export class Renderer {
 		}
 	}
 
-	render = (renderables: RenderData, cameraPosition: Vec3) => {
+	render = (
+		renderables: RenderData,
+		cameraPosition: Vec3,
+		camForwards: Vec3,
+		camRight: Vec3,
+		camUp: Vec3
+	) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
 		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 70);
 		const view = renderables.viewTransform;
+
+		const dy = Math.tan(Math.PI / 8);
+		const dx = (dy * 800) / 600;
+
+		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
+		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();
+		this.renderPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
+			colorAttachments: [
+				{
+					view: this.view,
+					loadOp: 'clear',
+					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+					storeOp: 'store',
+				},
+			],
+			depthStencilAttachment: this.depthStencilAttachment,
+		});
+
+		this.device.queue.writeBuffer(
+			this.parameterBuffer,
+			0,
+			new Float32Array([
+				camForwards[0],
+				camForwards[1],
+				camForwards[2],
+				0.0,
+				dx * camRight[0],
+				dx * camRight[1],
+				dx * camRight[2],
+				0.0,
+				dy * camUp[0],
+				dy * camUp[1],
+				dy * camUp[2],
+				0.0,
+			]),
+			0,
+			12
+		);
+
+		this.renderPass.setPipeline(this.skyPipeline);
+		this.renderPass.setBindGroup(0, this.skyFrameBindGroup);
+		this.renderPass.draw(6, 1, 0, 0);
 
 		// Pass matrices into the same buffer
 		// Shader will take it in as an object with 3 matrices because of the way we set it up
@@ -594,20 +735,6 @@ export class Renderer {
 		}
 
 		this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>new Float32Array(normalMatrixArr));
-
-		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
-		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();
-		this.renderPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
-			colorAttachments: [
-				{
-					view: this.view,
-					loadOp: 'clear',
-					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-					storeOp: 'store',
-				},
-			],
-			depthStencilAttachment: this.depthStencilAttachment,
-		});
 
 		this.renderPass.setPipeline(this.pipeline);
 		this.renderPass.setBindGroup(0, this.frameBindGroup);

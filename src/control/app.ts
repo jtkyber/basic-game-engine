@@ -81,7 +81,13 @@ export class App {
 			this.then = this.now - (window.myLib.deltaTime % this.fpsInterval);
 
 			this.scene.update();
-			this.renderer.render(this.scene.get_renderables(), this.scene.camera.get_position());
+			this.renderer.render(
+				this.scene.get_renderables(),
+				this.scene.camera.get_position(),
+				this.scene.camera.forwards,
+				this.scene.camera.right,
+				this.scene.camera.up
+			);
 
 			const lastCamPosition: Vec3 = this.scene.camera.position;
 			const lastPlayerPosition: Vec3 = this.scene.player.position;

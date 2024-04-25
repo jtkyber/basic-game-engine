@@ -1,6 +1,7 @@
 export class Material {
 	texture: GPUTexture;
 	view: GPUTextureView;
+	skyView: GPUTextureView;
 	sampler: GPUSampler;
 	depthSampler: GPUSampler;
 	bindGroup: GPUBindGroup;
