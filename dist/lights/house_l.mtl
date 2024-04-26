@@ -1,11 +1,11 @@
 newmtl Porch1
-Ns 1.0
+Ns 0.5
 Ke 1.0 0.5 0.0
 
 newmtl Porch2
-Ns 1.0
+Ns 0.5
 Ke 0.0 1.0 1.0
 
 newmtl Porch3
-Ns 1.8
+Ns 2.0
 Ke 1.0 1.0 1.0
