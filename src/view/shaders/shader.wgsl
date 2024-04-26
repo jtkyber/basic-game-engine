@@ -96,7 +96,7 @@ fn f_main(input: VertOut) -> FragOut {
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
 
     // Ambient
-    let ka = 0.15;
+    let ka = 0.12;
     let ambientLight = textureColor.rgb * input.materialAmbient * ka;
 
     var finalLight: vec3f = vec3f(0.0, 0.0, 0.0);
