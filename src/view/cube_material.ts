@@ -4,7 +4,7 @@ export class CubeMaterial {
 	sampler: GPUSampler;
 	bindGroup: GPUBindGroup;
 
-	async initialize(device: GPUDevice, images: { [id: number]: string }) {
+	async initialize(device: GPUDevice, images: string[]) {
 		let imageData: ImageBitmap[] = new Array(6);
 
 		for (let i: number = 0; i < 6; i++) {

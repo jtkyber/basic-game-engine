@@ -632,8 +632,8 @@ export class Renderer {
 		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 70);
 		const view = renderables.viewTransform;
 
-		const dy = Math.tan(Math.PI / 8);
-		const dx = (dy * 800) / 600;
+		const dy = Math.tan(this.fov / 2);
+		const dx = dy * this.aspect;
 
 		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
 		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();

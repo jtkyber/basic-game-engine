@@ -109,7 +109,6 @@ fn f_main(input: VertOut) -> FragOut {
 
         let lightRadius: f32 = 20.0 * lightBrightnessValues[i];
 
-        // let s = min(1.0, lightDist / lightRadius);
         let s = lightDist / lightRadius;
         if (s >= 1.0) { 
             i++;

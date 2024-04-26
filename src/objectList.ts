@@ -37,6 +37,11 @@ export const objectList: IObjectList = {
 		hasBoundingBox: false,
 		hasLights: false,
 	},
+	boundary: {
+		models: [new Floor([0, 0, 0], [0, 0, 0])],
+		hasBoundingBox: false,
+		hasLights: false,
+	},
 	// car: {
 	// 	models: [new Car([0, -10, 0], [0, 0, -90])],
 	// 	hasBoundingBox: false,

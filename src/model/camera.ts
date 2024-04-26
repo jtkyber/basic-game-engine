@@ -34,8 +34,10 @@ export class Camera {
 
 		this.right = vec3.cross(this.forwards, [0, 0, 1]);
 		this.rightMove = vec3.cross(this.forwardMove, [0, 0, 1]);
+		vec3.normalize(this.right, this.right);
 
 		this.up = vec3.cross(this.right, this.forwards);
+		vec3.normalize(this.up, this.up);
 
 		const target: Vec3 = vec3.add(this.position, this.forwards);
 
