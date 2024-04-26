@@ -35,7 +35,7 @@ struct FragOut {
     @location(0) color: vec4f,
 };
 
-const fogIntensity: f32 = 0.025;
+const fogIntensity: f32 = 0.02;
 const fogColor = vec3f(0.0, 0.0, 0.0);
 const lightFalloff: f32 = 30.0;
 

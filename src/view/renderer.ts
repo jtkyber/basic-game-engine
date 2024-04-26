@@ -235,7 +235,7 @@ export class Renderer {
 		this.depthStencilState = {
 			format: 'depth24plus',
 			depthWriteEnabled: true,
-			depthCompare: 'less',
+			depthCompare: 'less-equal',
 		};
 
 		const size: GPUExtent3D = {
@@ -629,7 +629,7 @@ export class Renderer {
 		camUp: Vec3
 	) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 70);
+		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 130);
 		const view = renderables.viewTransform;
 
 		const dy = Math.tan(this.fov / 2);
