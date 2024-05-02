@@ -1,4 +1,7 @@
-export function one_four_by_four_four(vertex: Float32Array, modelTransform: Float32Array): Float32Array {
+export function one_four_by_four_four(
+	vertex: Float32Array | number[],
+	modelTransform: Float32Array
+): Float32Array {
 	const v1: number = vertex[0];
 	const v2: number = vertex[1];
 	const v3: number = vertex[2];

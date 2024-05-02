@@ -10,6 +10,7 @@ export class Camera {
 	right: Vec3;
 	rightMove: Vec3;
 	up: Vec3;
+	target: Vec3;
 
 	constructor(position: Vec3, theta: number, phi: number) {
 		this.position = position;
@@ -39,12 +40,12 @@ export class Camera {
 		this.up = vec3.cross(this.right, this.forwards);
 		vec3.normalize(this.up, this.up);
 
-		const target: Vec3 = vec3.add(this.position, this.forwards);
+		this.target = vec3.add(this.position, this.forwards);
 
 		// Eye: Position of the camera
 		// Target: The point we're looking at
 		// Up: The vector we are considering "up" to be at
-		this.view = mat4.lookAt(this.position, target, this.up);
+		this.view = mat4.lookAt(this.position, this.target, this.up);
 	}
 
 	get_view(): Mat4 {

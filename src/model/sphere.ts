@@ -12,9 +12,11 @@ export class Sphere extends Model {
 	}
 
 	update() {
-		this.eulers[2] += 0.2;
+		this.eulers[2] += 0.6;
 		this.model = mat4.create();
 		mat4.translation(this.position, this.model);
+		mat4.rotateX(this.model, degToRad(this.eulers[0]), this.model);
+		mat4.rotateY(this.model, degToRad(this.eulers[1]), this.model);
 		mat4.rotateZ(this.model, degToRad(this.eulers[2]), this.model);
 	}
 }

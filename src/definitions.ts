@@ -5,4 +5,13 @@ export interface RenderData {
 	modelTransforms: Float32Array;
 	boundingBoxTransforms: Float32Array;
 	lightTransforms: Float32Array;
+	lightViewMatrix: Float32Array;
+	rotatedLightDir: Float32Array;
 }
+
+export enum LightType {
+	spot,
+	point,
+}
+
+export type LightTypeString = keyof typeof LightType;

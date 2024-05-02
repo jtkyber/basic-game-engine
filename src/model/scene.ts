@@ -1,6 +1,6 @@
-import { Mat4, Vec3, vec3 } from 'wgpu-matrix';
+import { Mat4, Vec3, mat4, utils, vec3 } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
-import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
+import { ILight, IObject, boundingBoxCount, lightCount, objectCount, objectList } from '../objectList';
 import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
 import { dot, num_vec_multiply, vecAdd } from '../utils/math_stuff';
@@ -14,7 +14,9 @@ export class Scene {
 	player: Player & any;
 	camera: Camera;
 	modelData: Float32Array;
-	lightData: number[];
+	lightData: Float32Array;
+	lightViewMatrix: Float32Array;
+	rotatedLightDir: Float32Array;
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
 	camDistFromPlayer: number;
@@ -29,7 +31,8 @@ export class Scene {
 
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
-		this.lightData = [];
+		this.lightData = new Float32Array(16 * lightCount);
+		this.rotatedLightDir = new Float32Array(4 * lightCount);
 		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;
 		this.camHeightAbovePlayer = 0.5;
@@ -50,6 +53,7 @@ export class Scene {
 		this.meshes = meshes;
 		this.playerMesh = playerMesh;
 		this.lightMesh = lightMesh;
+		this.lightViewMatrix = new Float32Array(this.lightMesh.lightCount);
 	}
 
 	update() {
@@ -89,13 +93,30 @@ export class Scene {
 					if (object.hasBoundingBox) this.boundingBoxData[16 * b_index + j] = <number>modelMatrix.at(j);
 				}
 
-				if (object.hasLights) {
-					for (let l: number = 0; l < this.lightMesh.lightCount; l++) {
-						for (let j: number = 0; j < 16; j++) {
-							this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
-						}
-						light_index++;
+				// const lightRefs = this.lightMesh.objLightRefs[name];
+				for (let l: number = 0; l < object.lights.length; l++) {
+					const light: ILight = object.lights[l];
+					// const lightPos: Vec3 = this.lightMesh.lightPositionArr.slice(l * 3, l * 3 + 3);
+					// const lvm: Mat4 = mat4.lookAt(lightPos, this.camera.target, this.camera.up);
+					for (let j: number = 0; j < 16; j++) {
+						// this.lightViewMatrix[16 * light_index + j] = lvm.at(j);
+						this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
 					}
+
+					let rotated = vec3.rotateX(
+						light.direction || [0, 0, 0],
+						[0, 0, 0],
+						utils.degToRad(model.eulers[0])
+					);
+					rotated = vec3.rotateY(rotated, [0, 0, 0], utils.degToRad(model.eulers[1]));
+					rotated = vec3.rotateZ(rotated, [0, 0, 0], utils.degToRad(model.eulers[2]));
+
+					this.rotatedLightDir[4 * light_index] = rotated[0];
+					this.rotatedLightDir[4 * light_index + 1] = rotated[1];
+					this.rotatedLightDir[4 * light_index + 2] = rotated[2];
+					this.rotatedLightDir[4 * light_index + 3] = 0;
+
+					light_index++;
 				}
 
 				i++;
@@ -204,7 +225,9 @@ export class Scene {
 			viewTransform: this.camera.get_view(),
 			modelTransforms: this.modelData,
 			boundingBoxTransforms: this.boundingBoxData,
-			lightTransforms: new Float32Array(this.lightData),
+			lightTransforms: this.lightData,
+			lightViewMatrix: new Float32Array([]),
+			rotatedLightDir: this.rotatedLightDir,
 		};
 	}
 

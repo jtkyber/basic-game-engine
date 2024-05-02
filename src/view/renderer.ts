@@ -1,6 +1,6 @@
-import { Mat4, Vec3, mat4, utils, vec3 } from 'wgpu-matrix';
+import { Vec3, mat4, utils } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
-import { IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
+import { ILight, IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
 import { one_four_by_four_four } from '../utils/matrices';
 import { CubeMaterial } from './cube_material';
 import { LightMesh } from './light_mesh';
@@ -38,6 +38,9 @@ export class Renderer {
 	vpDimensionBuffer: GPUBuffer;
 	lightBrightnessBuffer: GPUBuffer;
 	lightColorBuffer: GPUBuffer;
+	lightTypeBuffer: GPUBuffer;
+	lightDirectionBuffer: GPUBuffer;
+	lightLimitBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
 	normalMatrixBuffer: GPUBuffer;
 	parameterBuffer: GPUBuffer;
@@ -140,20 +143,38 @@ export class Renderer {
 		});
 
 		this.lightWorldPosBuffer = this.device.createBuffer({
-			label: 'Light Pos Buffer',
+			label: 'lightWorldPosBuffer',
 			size: 4 * 4 * this.lightMesh.lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		this.lightBrightnessBuffer = this.device.createBuffer({
-			label: 'Light Data Buffer',
+			label: 'lightBrightnessBuffer',
 			size: 4 * this.lightMesh.lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		this.lightColorBuffer = this.device.createBuffer({
-			label: 'Light Data Buffer',
+			label: 'lightColorBuffer',
 			size: 4 * 4 * this.lightMesh.lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightTypeBuffer = this.device.createBuffer({
+			label: 'lightTypeBuffer',
+			size: 4 * this.lightMesh.lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightDirectionBuffer = this.device.createBuffer({
+			label: 'lightDirectionBuffer',
+			size: 4 * 4 * this.lightMesh.lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightLimitBuffer = this.device.createBuffer({
+			label: 'lightLimitBuffer',
+			size: 4 * this.lightMesh.lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -328,6 +349,30 @@ export class Renderer {
 				},
 				{
 					binding: 7,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
+				{
+					binding: 8,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
+				{
+					binding: 9,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
+				{
+					binding: 10,
 					visibility: GPUShaderStage.VERTEX,
 					buffer: {
 						type: 'read-only-storage',
@@ -461,11 +506,29 @@ export class Renderer {
 				{
 					binding: 6,
 					resource: {
-						buffer: this.lightWorldPosBuffer,
+						buffer: this.lightTypeBuffer,
 					},
 				},
 				{
 					binding: 7,
+					resource: {
+						buffer: this.lightDirectionBuffer,
+					},
+				},
+				{
+					binding: 8,
+					resource: {
+						buffer: this.lightLimitBuffer,
+					},
+				},
+				{
+					binding: 9,
+					resource: {
+						buffer: this.lightWorldPosBuffer,
+					},
+				},
+				{
+					binding: 10,
 					resource: {
 						buffer: this.normalMatrixBuffer,
 					},
@@ -500,6 +563,9 @@ export class Renderer {
 			new Float32Array(this.lightMesh.brightnessArr)
 		);
 		this.device.queue.writeBuffer(this.lightColorBuffer, 0, new Float32Array(this.lightMesh.colorValueArr));
+		this.device.queue.writeBuffer(this.lightTypeBuffer, 0, new Float32Array(this.lightMesh.typeArr));
+
+		this.device.queue.writeBuffer(this.lightLimitBuffer, 0, new Float32Array(this.lightMesh.limitArr));
 
 		if (this.collisionDebug) {
 			this.boundingBoxBindGroup = this.device.createBindGroup({
@@ -621,6 +687,76 @@ export class Renderer {
 		}
 	}
 
+	writeFrameBuffers(renderables: RenderData, cameraPosition: Vec3) {
+		// If zFar (last v + alue) is too large, depth buffer gets confused
+		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 130);
+		const view = renderables.viewTransform;
+
+		// Pass matrices into the same buffer
+		// Shader will take it in as an object with 3 matrices because of the way we set it up
+		this.device.queue.writeBuffer(
+			this.objectBuffer,
+			0,
+			<ArrayBuffer>renderables.modelTransforms,
+			0,
+			renderables.modelTransforms.length
+		);
+
+		const lightWorldPositionsTemp: number[] = [];
+		for (let i: number = 0; i < this.lightMesh.lightCount; i++) {
+			lightWorldPositionsTemp.push(
+				...one_four_by_four_four(
+					new Float32Array(this.lightMesh.lightPositionArr.slice(i * 3, i * 3 + 3)),
+					renderables.lightTransforms.slice(i * 16, i * 16 + 16)
+				),
+				0
+			);
+		}
+
+		this.device.queue.writeBuffer(
+			this.lightWorldPosBuffer,
+			0,
+			<ArrayBuffer>new Float32Array(lightWorldPositionsTemp),
+			0,
+			lightWorldPositionsTemp.length
+		);
+
+		this.device.queue.writeBuffer(this.lightDirectionBuffer, 0, renderables.rotatedLightDir);
+
+		if (this.collisionDebug) {
+			this.device.queue.writeBuffer(
+				this.boundingBoxBuffer,
+				0,
+				<ArrayBuffer>renderables.boundingBoxTransforms,
+				0,
+				renderables.boundingBoxTransforms.length
+			);
+		}
+
+		this.device.queue.writeBuffer(this.uniformBuffer, 0, <ArrayBuffer>view);
+		this.device.queue.writeBuffer(this.uniformBuffer, 64, <ArrayBuffer>projection);
+
+		this.device.queue.writeBuffer(
+			this.cameraPosBuffer,
+			0,
+			<ArrayBuffer>new Float32Array([...cameraPosition, 0])
+		);
+		this.device.queue.writeBuffer(
+			this.vpDimensionBuffer,
+			0,
+			<ArrayBuffer>new Float32Array([this.canvas.width, this.canvas.height])
+		);
+
+		const normalMatrixArr: number[] = [];
+		for (let i: number = 0; i < objectCount; i++) {
+			normalMatrixArr.push(
+				...mat4.transpose(mat4.invert(renderables.modelTransforms.slice(i * 16, i * 16 + 16)))
+			);
+		}
+
+		this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>new Float32Array(normalMatrixArr));
+	}
+
 	render = (
 		renderables: RenderData,
 		cameraPosition: Vec3,
@@ -628,10 +764,6 @@ export class Renderer {
 		camRight: Vec3,
 		camUp: Vec3
 	) => {
-		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 130);
-		const view = renderables.viewTransform;
-
 		const dy = Math.tan(this.fov / 2);
 		const dx = dy * this.aspect;
 
@@ -674,67 +806,7 @@ export class Renderer {
 		this.renderPass.setBindGroup(0, this.skyFrameBindGroup);
 		this.renderPass.draw(6, 1, 0, 0);
 
-		// Pass matrices into the same buffer
-		// Shader will take it in as an object with 3 matrices because of the way we set it up
-		this.device.queue.writeBuffer(
-			this.objectBuffer,
-			0,
-			<ArrayBuffer>renderables.modelTransforms,
-			0,
-			renderables.modelTransforms.length
-		);
-
-		const lightWorldPositionsTemp: number[] = [];
-		for (let i: number = 0; i < this.lightMesh.lightCount; i++) {
-			lightWorldPositionsTemp.push(
-				...one_four_by_four_four(
-					new Float32Array(this.lightMesh.lightPositionArr.slice(i * 3, i * 3 + 3)),
-					renderables.lightTransforms.slice(i * 16, i * 16 + 16)
-				),
-				0
-			);
-		}
-
-		this.device.queue.writeBuffer(
-			this.lightWorldPosBuffer,
-			0,
-			<ArrayBuffer>new Float32Array(lightWorldPositionsTemp),
-			0,
-			lightWorldPositionsTemp.length
-		);
-
-		if (this.collisionDebug) {
-			this.device.queue.writeBuffer(
-				this.boundingBoxBuffer,
-				0,
-				<ArrayBuffer>renderables.boundingBoxTransforms,
-				0,
-				renderables.boundingBoxTransforms.length
-			);
-		}
-
-		this.device.queue.writeBuffer(this.uniformBuffer, 0, <ArrayBuffer>view);
-		this.device.queue.writeBuffer(this.uniformBuffer, 64, <ArrayBuffer>projection);
-
-		this.device.queue.writeBuffer(
-			this.cameraPosBuffer,
-			0,
-			<ArrayBuffer>new Float32Array([...cameraPosition, 0])
-		);
-		this.device.queue.writeBuffer(
-			this.vpDimensionBuffer,
-			0,
-			<ArrayBuffer>new Float32Array([this.canvas.width, this.canvas.height])
-		);
-
-		const normalMatrixArr: number[] = [];
-		for (let i: number = 0; i < objectCount; i++) {
-			normalMatrixArr.push(
-				...mat4.transpose(mat4.invert(renderables.modelTransforms.slice(i * 16, i * 16 + 16)))
-			);
-		}
-
-		this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>new Float32Array(normalMatrixArr));
+		this.writeFrameBuffers(renderables, cameraPosition);
 
 		this.renderPass.setPipeline(this.pipeline);
 		this.renderPass.setBindGroup(0, this.frameBindGroup);

@@ -47,8 +47,11 @@ const lightFalloff: f32 = 30.0;
 
 @group(0) @binding(4) var<storage, read> lightBrightnessValues: array<f32>;
 @group(0) @binding(5) var<storage, read> lightColorValues: array<vec3f>;
-@group(0) @binding(6) var<storage, read> lightWorldPositions: array<vec3f>;
-@group(0) @binding(7) var<storage, read> normalMatrices: array<mat4x4<f32>>;
+@group(0) @binding(6) var<storage, read> lightTypeValues: array<f32>;
+@group(0) @binding(7) var<storage, read> lightDirectionValues: array<vec3f>;
+@group(0) @binding(8) var<storage, read> lightLimitValues: array<f32>;
+@group(0) @binding(9) var<storage, read> lightWorldPositions: array<vec3f>;
+@group(0) @binding(10) var<storage, read> normalMatrices: array<mat4x4<f32>>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -72,8 +75,8 @@ fn v_main(input: VertIn) -> VertOut {
     output.position = transformUBO.projection * transformUBO.view * vertWorldPos;
     output.TextCoord = input.vertexTexCoord;
     output.worldPos = vertWorldPos; 
-    output.materialIndex = u32(input.materialIndex);
     output.vertexNormal = extractMat3FromMat4(normalMatrices[input.instanceIndex]) * input.vertexNormal;
+    output.materialIndex = u32(input.materialIndex);
     output.materialShininess = input.materialShininess;
     output.materialSpecular = input.materialSpecular;
     output.materialAmbient = input.materialAmbient;
@@ -115,10 +118,17 @@ fn f_main(input: VertOut) -> FragOut {
             continue; 
         }
 
-        let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
+        let surfaceToLightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
+        let dotFromDir = dot(surfaceToLightDir, -lightDirectionValues[i]);
 
-        let lightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
+        if (lightTypeValues[i] == 0 && dotFromDir <= lightLimitValues[i]) {
+            i++;
+            continue;
+        }
+
         let faceDirToCamera = normalize(input.worldPos.xyz - cameraPosition);
+
+        let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
        
         // Diffuse
         var diffuseColor = input.materialDiffuse * lightColorValues[i];
@@ -126,11 +136,11 @@ fn f_main(input: VertOut) -> FragOut {
             diffuseColor = textureColor.rgb * lightColorValues[i];
         }
         
-        let diffuseAmt = (max(0.0, dot(lightDir, input.vertexNormal))) * lightIntensityAdjustment;
+        let diffuseAmt = (max(0.0, dot(surfaceToLightDir, input.vertexNormal))) * lightIntensityAdjustment;
         let diffuseLight = diffuseColor * diffuseAmt;
 
         // Specular
-        let reflectedLight = reflect(lightDir, input.vertexNormal);
+        let reflectedLight = reflect(surfaceToLightDir, input.vertexNormal);
         let specularAmt = pow(max(0.0, dot(reflectedLight, faceDirToCamera)), input.materialShininess) * lightIntensityAdjustment;
         let specularLight = specularAmt * input.materialSpecular * diffuseColor;
 
