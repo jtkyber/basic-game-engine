@@ -1,6 +1,6 @@
 import { Vec3, mat4, utils } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
-import { ILight, IObject, boundingBoxCount, objectCount, objectList } from '../objectList';
+import { IObject, boundingBoxCount, lightCount, objectCount, objectList } from '../objectList';
 import { one_four_by_four_four } from '../utils/matrices';
 import { CubeMaterial } from './cube_material';
 import { LightMesh } from './light_mesh';
@@ -9,11 +9,15 @@ import { ObjMesh } from './obj_mesh';
 import boundingBoxShader from './shaders/boundingBoxShader.wgsl';
 import shader from './shaders/shader.wgsl';
 import skyShader from './shaders/skyShader.wgsl';
+import { Shadow } from './shadow';
 import { TriangleMesh } from './triangle_mesh';
 
 export class Renderer {
 	// Objects
 	collisionDebug: boolean;
+
+	// Shadow
+	shadow: Shadow;
 
 	// Canvas Stuff
 	canvas: HTMLCanvasElement;
@@ -42,6 +46,8 @@ export class Renderer {
 	lightDirectionBuffer: GPUBuffer;
 	lightLimitBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
+	lightViewProjBuffer: GPUBuffer;
+	lightIndexBuffer: GPUBuffer;
 	normalMatrixBuffer: GPUBuffer;
 	parameterBuffer: GPUBuffer;
 
@@ -62,6 +68,7 @@ export class Renderer {
 	// Rendering Stuff
 	encoder: GPUCommandEncoder;
 	renderPass: GPURenderPassEncoder;
+	shadowPass: GPURenderPassEncoder;
 
 	// Meshes
 	triangleMesh: TriangleMesh;
@@ -98,6 +105,8 @@ export class Renderer {
 		await this.makeBindGroupLayouts();
 		await this.makeDepthBufferResources();
 		await this.createAssets();
+		this.shadow = new Shadow(this.device, this.objectBuffer, this.lightViewProjBuffer, this.lightIndexBuffer);
+		await this.shadow.init();
 		await this.makePipelines();
 		await this.makeBindGroup();
 	}
@@ -113,6 +122,7 @@ export class Renderer {
 		this.boundingBoxShaderModule = <GPUShaderModule>(
 			this.device.createShaderModule({ label: 'bounding box shader', code: boundingBoxShader })
 		);
+
 		this.context.configure({
 			device: this.device,
 			format: this.format,
@@ -176,6 +186,18 @@ export class Renderer {
 			label: 'lightLimitBuffer',
 			size: 4 * this.lightMesh.lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightViewProjBuffer = this.device.createBuffer({
+			label: 'lightViewProjBuffer',
+			size: 4 * 16 * lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.lightIndexBuffer = this.device.createBuffer({
+			label: 'lightIndexBuffer',
+			size: 4,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
 		this.normalMatrixBuffer = this.device.createBuffer({
@@ -245,8 +267,7 @@ export class Renderer {
 				await this.objectMaterials[objectTotal].initialize(
 					this.device,
 					this.objectMeshes[objectTotal].materialFilenames,
-					this.materialBindGroupLayout,
-					this.depthView
+					this.materialBindGroupLayout
 				);
 				objectTotal++;
 			}
@@ -264,26 +285,14 @@ export class Renderer {
 			height: this.canvas.height,
 			depthOrArrayLayers: 1,
 		};
+
 		this.depthStencilBuffer = this.device.createTexture({
 			size: size,
 			format: 'depth24plus',
 			usage: GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 
-		const depthBuffer = this.device.createTexture({
-			size: size,
-			format: 'depth24plus',
-			usage: GPUTextureUsage.TEXTURE_BINDING,
-			mipLevelCount: 1,
-			sampleCount: 1,
-		});
-
 		this.depthStencilView = this.depthStencilBuffer.createView({
-			format: 'depth24plus',
-			dimension: '2d',
-			aspect: 'depth-only',
-		});
-		this.depthView = depthBuffer.createView({
 			format: 'depth24plus',
 			dimension: '2d',
 			aspect: 'depth-only',
@@ -379,6 +388,30 @@ export class Renderer {
 						hasDynamicOffset: false,
 					},
 				},
+				{
+					binding: 11,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+					texture: {
+						sampleType: 'depth',
+						viewDimension: '2d-array',
+						multisampled: false,
+					},
+				},
+				{
+					binding: 12,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+					sampler: {
+						type: 'comparison',
+					},
+				},
+				{
+					binding: 13,
+					visibility: GPUShaderStage.FRAGMENT,
+					buffer: {
+						type: 'read-only-storage',
+						hasDynamicOffset: false,
+					},
+				},
 			],
 		});
 
@@ -441,22 +474,6 @@ export class Renderer {
 					binding: 1,
 					visibility: GPUShaderStage.FRAGMENT,
 					sampler: {},
-				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.FRAGMENT,
-					texture: {
-						sampleType: 'depth',
-						viewDimension: '2d',
-						multisampled: false,
-					},
-				},
-				{
-					binding: 3,
-					visibility: GPUShaderStage.FRAGMENT,
-					sampler: {
-						type: 'comparison',
-					},
 				},
 			],
 		});
@@ -533,6 +550,20 @@ export class Renderer {
 						buffer: this.normalMatrixBuffer,
 					},
 				},
+				{
+					binding: 11,
+					resource: this.shadow.depthTextureView,
+				},
+				{
+					binding: 12,
+					resource: this.shadow.depthSampler,
+				},
+				{
+					binding: 13,
+					resource: {
+						buffer: this.lightViewProjBuffer,
+					},
+				},
 			],
 		});
 
@@ -564,7 +595,6 @@ export class Renderer {
 		);
 		this.device.queue.writeBuffer(this.lightColorBuffer, 0, new Float32Array(this.lightMesh.colorValueArr));
 		this.device.queue.writeBuffer(this.lightTypeBuffer, 0, new Float32Array(this.lightMesh.typeArr));
-
 		this.device.queue.writeBuffer(this.lightLimitBuffer, 0, new Float32Array(this.lightMesh.limitArr));
 
 		if (this.collisionDebug) {
@@ -722,6 +752,7 @@ export class Renderer {
 		);
 
 		this.device.queue.writeBuffer(this.lightDirectionBuffer, 0, renderables.rotatedLightDir);
+		this.device.queue.writeBuffer(this.lightViewProjBuffer, 0, renderables.lightViewProjMatrix);
 
 		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(
@@ -769,17 +800,6 @@ export class Renderer {
 
 		this.encoder = <GPUCommandEncoder>this.device.createCommandEncoder();
 		this.view = <GPUTextureView>this.context.getCurrentTexture().createView();
-		this.renderPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
-			colorAttachments: [
-				{
-					view: this.view,
-					loadOp: 'clear',
-					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-					storeOp: 'store',
-				},
-			],
-			depthStencilAttachment: this.depthStencilAttachment,
-		});
 
 		this.device.queue.writeBuffer(
 			this.parameterBuffer,
@@ -802,21 +822,68 @@ export class Renderer {
 			12
 		);
 
+		this.writeFrameBuffers(renderables, cameraPosition);
+
+		let objectsDrawn: number = 0;
+
+		// Shadow Pass -------------------------------------------
+
+		for (let i: number = 0; i < lightCount; i++) {
+			this.shadowPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
+				colorAttachments: [],
+				depthStencilAttachment: {
+					view: this.shadow.depthTextureViewArray[i],
+					depthClearValue: 1.0,
+					depthLoadOp: 'clear',
+					depthStoreOp: 'store',
+				},
+			});
+
+			this.device.queue.writeBuffer(this.lightIndexBuffer, 0, new Float32Array(i));
+			this.shadowPass.setPipeline(this.shadow.pipeline);
+			this.shadowPass.setBindGroup(0, this.shadow.bindGroup);
+
+			objectsDrawn = 0;
+			for (let j: number = 0; j < objectCount; j++) {
+				this.shadowPass.setVertexBuffer(0, this.objectMeshes[j].positionBuffer);
+				this.shadowPass.draw(this.objectMeshes[j].vCount / 3, 1, 0, objectsDrawn);
+
+				objectsDrawn++;
+			}
+
+			this.shadowPass.end();
+		}
+
+		this.shadow.createTextureViewArray();
+
+		// -------------------------------------------------------
+
+		this.renderPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
+			colorAttachments: [
+				{
+					view: this.view,
+					loadOp: 'clear',
+					clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+					storeOp: 'store',
+				},
+			],
+			depthStencilAttachment: this.depthStencilAttachment,
+		});
+
 		this.renderPass.setPipeline(this.skyPipeline);
 		this.renderPass.setBindGroup(0, this.skyFrameBindGroup);
 		this.renderPass.draw(6, 1, 0, 0);
 
-		this.writeFrameBuffers(renderables, cameraPosition);
-
 		this.renderPass.setPipeline(this.pipeline);
 		this.renderPass.setBindGroup(0, this.frameBindGroup);
 
-		let objectsDrawn: number = 0;
+		objectsDrawn = 0;
 
 		for (let i: number = 0; i < objectCount; i++) {
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
 			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
 			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);
+
 			objectsDrawn++;
 		}
 

@@ -3,14 +3,12 @@ export class Material {
 	view: GPUTextureView;
 	skyView: GPUTextureView;
 	sampler: GPUSampler;
-	depthSampler: GPUSampler;
 	bindGroup: GPUBindGroup;
 
 	async initialize(
 		device: GPUDevice,
 		images: { [id: number]: string },
 		bindGroupLayout: GPUBindGroupLayout,
-		depthStencilView: GPUTextureView
 	) {
 		const viewDescriptor: GPUTextureViewDescriptor = {
 			format: 'rgba8unorm',
@@ -59,18 +57,6 @@ export class Material {
 
 		this.sampler = device.createSampler(samplerDescriptor);
 
-		const depthSamplerDescritor: GPUSamplerDescriptor = {
-			addressModeU: 'clamp-to-edge',
-			addressModeV: 'clamp-to-edge',
-			addressModeW: 'clamp-to-edge',
-			magFilter: 'linear',
-			minFilter: 'linear',
-			mipmapFilter: 'nearest',
-			maxAnisotropy: 1,
-			compare: 'less-equal',
-		};
-		this.depthSampler = device.createSampler(depthSamplerDescritor);
-
 		this.bindGroup = device.createBindGroup({
 			layout: bindGroupLayout,
 			entries: [
@@ -82,24 +68,9 @@ export class Material {
 					binding: 1,
 					resource: this.sampler,
 				},
-				{
-					binding: 2,
-					resource: depthStencilView,
-				},
-				{
-					binding: 3,
-					resource: this.depthSampler,
-				},
 			],
 		});
 	}
-
-	// appendBuffer(buffer1: ArrayBuffer, buffer2: ArrayBuffer): ArrayBuffer {
-	// 	let tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-	// 	tmp.set(new Uint8Array(buffer1), 0);
-	// 	tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-	// 	return tmp.buffer;
-	// }
 
 	async getMaxSize(urls: string[]): Promise<{ width: number; height: number }> {
 		let width: number = 0;

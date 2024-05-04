@@ -12,6 +12,7 @@ export class House extends Model {
 	}
 
 	update() {
+		// this.eulers[2] += 0.5;
 		this.model = mat4.create();
 		// v: the vector you are translating by
 		mat4.translation(this.position, this.model);

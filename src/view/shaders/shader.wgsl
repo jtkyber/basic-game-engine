@@ -1,10 +1,10 @@
 struct TransformData {
-    view: mat4x4<f32>,
-    projection: mat4x4<f32>,
+    view: mat4x4f,
+    projection: mat4x4f,
 };
 
 struct ObjectData {
-    model: array<mat4x4<f32>>,
+    model: array<mat4x4f>,
 };
 
 struct VertIn {
@@ -35,9 +35,12 @@ struct FragOut {
     @location(0) color: vec4f,
 };
 
+const pi: f32 = 3.14159265359;
+
 const fogIntensity: f32 = 0.02;
 const fogColor = vec3f(0.0, 0.0, 0.0);
 const lightFalloff: f32 = 30.0;
+const lightRadialFalloff: f32 = 2;
 
 // Bound for each frame
 @group(0) @binding(0) var<uniform> transformUBO: TransformData;
@@ -51,15 +54,16 @@ const lightFalloff: f32 = 30.0;
 @group(0) @binding(7) var<storage, read> lightDirectionValues: array<vec3f>;
 @group(0) @binding(8) var<storage, read> lightLimitValues: array<f32>;
 @group(0) @binding(9) var<storage, read> lightWorldPositions: array<vec3f>;
-@group(0) @binding(10) var<storage, read> normalMatrices: array<mat4x4<f32>>;
+@group(0) @binding(10) var<storage, read> normalMatrices: array<mat4x4f>;
+@group(0) @binding(11) var shadowDepthTexture: texture_depth_2d_array;
+@group(0) @binding(12) var shadowDepthSampler: sampler_comparison;
+@group(0) @binding(13) var<storage, read> lightProjectionMat: array<mat4x4f>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
 @group(1) @binding(1) var mySampler: sampler;
-@group(1) @binding(2) var myDepthTexture: texture_depth_2d;
-@group(1) @binding(3) var myDepthSampler: sampler_comparison;
 
-fn extractMat3FromMat4(m: mat4x4<f32>) -> mat3x3<f32> {
+fn extractMat3FromMat4(m: mat4x4f) -> mat3x3f {
     return mat3x3(
         m[0].xyz,
         m[1].xyz,
@@ -104,31 +108,58 @@ fn f_main(input: VertOut) -> FragOut {
 
     var finalLight: vec3f = vec3f(0.0, 0.0, 0.0);
 
-    var i: u32 = 0;
-    loop {
-        if i >= arrayLength(&lightWorldPositions) { break; }
-
+    for (var i: u32 = 0; i < arrayLength(&lightWorldPositions); i++) {
         let lightDist = abs(distance(lightWorldPositions[i], input.worldPos.xyz));
 
         let lightRadius: f32 = 20.0 * lightBrightnessValues[i];
 
         let s = lightDist / lightRadius;
-        if (s >= 1.0) { 
-            i++;
-            continue; 
+        // if (s >= 1.0) { 
+        //     i++;
+        //     continue; 
+        // }
+
+        // Shadows ------------------
+        
+        let posFromLight = lightProjectionMat[i] * input.worldPos;
+        let shadowPos = vec3f(posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5), posFromLight.z);
+
+        var visibility = 0.0;
+        let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
+        for (var y = -1; y <= 1; y++) {
+            for (var x = -1; x <= 1; x++) {
+                let offset = vec2f(vec2(x, y)) * oneOverShadowDepthTextureSize;
+
+                visibility += textureSampleCompare(
+                    shadowDepthTexture, shadowDepthSampler,
+                    shadowPos.xy + offset, i, shadowPos.z - 0.007
+                );
+            }
         }
 
-        let surfaceToLightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
-        let dotFromDir = dot(surfaceToLightDir, -lightDirectionValues[i]);
+        visibility /= 9.0;
 
-        if (lightTypeValues[i] == 0 && dotFromDir <= lightLimitValues[i]) {
-            i++;
-            continue;
+        // --------------------------
+
+        let surfaceToLightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
+        let dotFromDir = dot(surfaceToLightDir, normalize(-lightDirectionValues[i]));
+        let lightLimit = 1 - lightLimitValues[i] / pi;
+        let percentAlongLightRadius = (1 - dotFromDir) / (1 - lightLimit);
+        var spotLightFalloff = 1.0;
+
+        if (lightTypeValues[i] == 0) {        // If spot light
+            if (dotFromDir <= lightLimit) {
+                // i++;
+                // continue;
+                spotLightFalloff = 0.0;
+            } else {
+                spotLightFalloff = pow(1 - percentAlongLightRadius, lightRadialFalloff);
+            }
         }
 
         let faceDirToCamera = normalize(input.worldPos.xyz - cameraPosition);
 
-        let lightIntensityAdjustment = lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
+        let lightIntensityAdjustment = visibility * spotLightFalloff * lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
        
         // Diffuse
         var diffuseColor = input.materialDiffuse * lightColorValues[i];
@@ -145,15 +176,11 @@ fn f_main(input: VertOut) -> FragOut {
         let specularLight = specularAmt * input.materialSpecular * diffuseColor;
 
         finalLight += diffuseLight + specularLight;
-
-        i++;
     }
 
     let finalWithFog = mix(finalLight + ambientLight, fogColor, fogScaler);
 
     output.color = vec4f(finalWithFog, textureColor.a);
-    // output.color = vec4f(finalLight + ambientLight, textureColor.a);
-    // output.color = vec4f(textureColor);
     
     return output;
 }

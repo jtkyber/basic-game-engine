@@ -1,14 +1,14 @@
-@group(0) @binding(0) var<storage> modelMat: array<mat4x4f>;
-@group(0) @binding(1) var<uniform> lightProjectionMat: mat4x4f;
+@group(0) @binding(0) var<storage, read> modelMat: array<mat4x4f>;
+@group(0) @binding(1) var<storage, read> lightProjectionMat: array<mat4x4f>;
+@group(0) @binding(2) var<uniform> lightIndex: u32;
 
 struct Input {
     @builtin(instance_index) idx: u32,
-    @location(0) position: vec4f,
-    @location(1) normal: vec4f,
-}
+    @location(0) vertexPosition: vec3f,
+};
 
 @vertex
 fn vs_main(in: Input) -> @builtin(position) vec4f {
-    let mPos = modelMat[in.idx] * in.position;
-    return lightProjectionMat * mPos;
+    let modelPos = modelMat[in.idx] * vec4f(in.vertexPosition, 1.0);
+    return lightProjectionMat[lightIndex] * modelPos;
 }

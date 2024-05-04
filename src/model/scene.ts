@@ -15,7 +15,7 @@ export class Scene {
 	camera: Camera;
 	modelData: Float32Array;
 	lightData: Float32Array;
-	lightViewMatrix: Float32Array;
+	lightViewProjectionMatrix: Float32Array;
 	rotatedLightDir: Float32Array;
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
@@ -28,10 +28,12 @@ export class Scene {
 	meshes: ObjMesh[];
 	playerMesh: ObjMesh;
 	lightMesh: LightMesh;
+	lightOrthoParams: any;
 
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
 		this.lightData = new Float32Array(16 * lightCount);
+		this.lightViewProjectionMatrix = new Float32Array(16 * lightCount);
 		this.rotatedLightDir = new Float32Array(4 * lightCount);
 		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;
@@ -47,16 +49,25 @@ export class Scene {
 			0,
 			0
 		);
+		this.lightOrthoParams = {
+			left: -80,
+			right: 80,
+			bottom: -80,
+			top: 80,
+			near: -200,
+			far: 300,
+		};
 	}
 
 	set_meshes(meshes: ObjMesh[], playerMesh: ObjMesh, lightMesh: LightMesh) {
 		this.meshes = meshes;
 		this.playerMesh = playerMesh;
 		this.lightMesh = lightMesh;
-		this.lightViewMatrix = new Float32Array(this.lightMesh.lightCount);
 	}
 
 	update() {
+		this.camera.update();
+
 		if (this.camDistFromPlayer < 1) this.camDistFromPlayer = 1;
 		else if (this.camDistFromPlayer > 10) this.camDistFromPlayer = 10;
 
@@ -93,16 +104,10 @@ export class Scene {
 					if (object.hasBoundingBox) this.boundingBoxData[16 * b_index + j] = <number>modelMatrix.at(j);
 				}
 
-				// const lightRefs = this.lightMesh.objLightRefs[name];
 				for (let l: number = 0; l < object.lights.length; l++) {
 					const light: ILight = object.lights[l];
-					// const lightPos: Vec3 = this.lightMesh.lightPositionArr.slice(l * 3, l * 3 + 3);
-					// const lvm: Mat4 = mat4.lookAt(lightPos, this.camera.target, this.camera.up);
-					for (let j: number = 0; j < 16; j++) {
-						// this.lightViewMatrix[16 * light_index + j] = lvm.at(j);
-						this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
-					}
 
+					// Rotate light direction with object rotation
 					let rotated = vec3.rotateX(
 						light.direction || [0, 0, 0],
 						[0, 0, 0],
@@ -115,6 +120,23 @@ export class Scene {
 					this.rotatedLightDir[4 * light_index + 1] = rotated[1];
 					this.rotatedLightDir[4 * light_index + 2] = rotated[2];
 					this.rotatedLightDir[4 * light_index + 3] = 0;
+
+					// Create light-view-projection matrix
+					const lightTarget: Vec3 = vec3.add(light.position, rotated);
+
+					const lightViewMatrix: Mat4 = mat4.lookAt(light.position, lightTarget, [0, 0, 1]);
+
+					const lightProjectionMatrix: Mat4 = mat4.perspective(light.limit || 1.0, 1.0, 0.1, 130);
+
+					const lightViewProjectionMatrixTemp: Mat4 = mat4.multiply(lightProjectionMatrix, lightViewMatrix);
+
+					for (let j: number = 0; j < 16; j++) {
+						this.lightViewProjectionMatrix[16 * light_index + j] = <number>(
+							lightViewProjectionMatrixTemp.at(j)
+						);
+
+						this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
+					}
 
 					light_index++;
 				}
@@ -226,7 +248,7 @@ export class Scene {
 			modelTransforms: this.modelData,
 			boundingBoxTransforms: this.boundingBoxData,
 			lightTransforms: this.lightData,
-			lightViewMatrix: new Float32Array([]),
+			lightViewProjMatrix: new Float32Array([]),
 			rotatedLightDir: this.rotatedLightDir,
 		};
 	}

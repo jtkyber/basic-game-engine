@@ -3,6 +3,7 @@ import { Vec2, Vec3 } from 'wgpu-matrix';
 export class ObjMesh {
 	device: GPUDevice;
 	buffer: GPUBuffer;
+	positionBuffer: GPUBuffer;
 	boundingBoxBuffer: GPUBuffer;
 	bufferLayout: GPUVertexBufferLayout;
 	boundingBoxBufferLayout: GPUVertexBufferLayout;
@@ -140,9 +141,18 @@ export class ObjMesh {
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 			mappedAtCreation: true,
 		});
-
 		new Float32Array(this.buffer.getMappedRange()).set(this.vertices);
 		this.buffer.unmap();
+
+		this.positionBuffer = this.device.createBuffer({
+			label: 'Obj Mesh Position Buffer',
+			size: this.v.byteLength,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+			mappedAtCreation: true,
+		});
+
+		new Float32Array(this.positionBuffer.getMappedRange()).set(this.v);
+		this.positionBuffer.unmap();
 
 		this.bufferLayout = {
 			arrayStride: 76,
