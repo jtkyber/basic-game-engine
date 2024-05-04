@@ -5,7 +5,7 @@ export interface RenderData {
 	modelTransforms: Float32Array;
 	boundingBoxTransforms: Float32Array;
 	lightTransforms: Float32Array;
-	lightViewProjMatrix: Float32Array;
+	lightViewProjectionMatrices: Float32Array;
 	rotatedLightDir: Float32Array;
 }
 

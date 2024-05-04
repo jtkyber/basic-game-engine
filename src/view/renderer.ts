@@ -752,7 +752,7 @@ export class Renderer {
 		);
 
 		this.device.queue.writeBuffer(this.lightDirectionBuffer, 0, renderables.rotatedLightDir);
-		this.device.queue.writeBuffer(this.lightViewProjBuffer, 0, renderables.lightViewProjMatrix);
+		this.device.queue.writeBuffer(this.lightViewProjBuffer, 0, renderables.lightViewProjectionMatrices);
 
 		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(

@@ -15,7 +15,7 @@ export class Scene {
 	camera: Camera;
 	modelData: Float32Array;
 	lightData: Float32Array;
-	lightViewProjectionMatrix: Float32Array;
+	lightViewProjectionMatrices: Float32Array;
 	rotatedLightDir: Float32Array;
 	boundingBoxData: Float32Array;
 	moveDeltaVector: Vec3;
@@ -33,7 +33,7 @@ export class Scene {
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
 		this.lightData = new Float32Array(16 * lightCount);
-		this.lightViewProjectionMatrix = new Float32Array(16 * lightCount);
+		this.lightViewProjectionMatrices = new Float32Array(16 * lightCount);
 		this.rotatedLightDir = new Float32Array(4 * lightCount);
 		this.boundingBoxData = new Float32Array(16 * boundingBoxCount);
 		this.camDistFromPlayer = 2.5;
@@ -131,7 +131,7 @@ export class Scene {
 					const lightViewProjectionMatrixTemp: Mat4 = mat4.multiply(lightProjectionMatrix, lightViewMatrix);
 
 					for (let j: number = 0; j < 16; j++) {
-						this.lightViewProjectionMatrix[16 * light_index + j] = <number>(
+						this.lightViewProjectionMatrices[16 * light_index + j] = <number>(
 							lightViewProjectionMatrixTemp.at(j)
 						);
 
@@ -248,7 +248,7 @@ export class Scene {
 			modelTransforms: this.modelData,
 			boundingBoxTransforms: this.boundingBoxData,
 			lightTransforms: this.lightData,
-			lightViewProjMatrix: new Float32Array([]),
+			lightViewProjectionMatrices: this.lightViewProjectionMatrices,
 			rotatedLightDir: this.rotatedLightDir,
 		};
 	}
