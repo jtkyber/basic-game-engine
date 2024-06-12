@@ -19,6 +19,7 @@ export class ObjMesh {
 	vtCount: number;
 	vnCount: number;
 	vertices: Float32Array;
+	positionVertices: Float32Array;
 	boundingBoxVertices: Float32Array;
 	boundingBoxVerticesInitial: Float32Array;
 	boundingBoxVerticesGrouped: Float32Array;
@@ -133,7 +134,8 @@ export class ObjMesh {
 		// prettier-ignore
 		await this.read_mtl_file(url)
 		await this.read_obj_file(url);
-		this.vertexCount = this.vertices.length / 19;
+		const floatsPerVertex = 19;
+		this.vertexCount = this.vertices.length / floatsPerVertex;
 
 		this.buffer = this.device.createBuffer({
 			label: 'Obj Mesh Buffer',
@@ -144,14 +146,24 @@ export class ObjMesh {
 		new Float32Array(this.buffer.getMappedRange()).set(this.vertices);
 		this.buffer.unmap();
 
+		this.positionVertices = this.vertices.filter((num, i) => {
+			if (
+				(i + 1) % floatsPerVertex === 1 ||
+				(i + 1) % floatsPerVertex === 2 ||
+				(i + 1) % floatsPerVertex === 3
+			) {
+				return true;
+			}
+		});
+
 		this.positionBuffer = this.device.createBuffer({
 			label: 'Obj Mesh Position Buffer',
-			size: this.v.byteLength,
+			size: this.positionVertices.byteLength,
 			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 			mappedAtCreation: true,
 		});
 
-		new Float32Array(this.positionBuffer.getMappedRange()).set(this.v);
+		new Float32Array(this.positionBuffer.getMappedRange()).set(this.positionVertices);
 		this.positionBuffer.unmap();
 
 		this.bufferLayout = {

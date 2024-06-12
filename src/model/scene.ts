@@ -4,6 +4,7 @@ import { ILight, IObject, boundingBoxCount, lightCount, objectCount, objectList 
 import { ICollision } from '../types/types';
 import { player_object_collision } from '../utils/collisions';
 import { dot, num_vec_multiply, vecAdd } from '../utils/math_stuff';
+import { one_four_by_four_four } from '../utils/matrices';
 import { LightMesh } from '../view/light_mesh';
 import { ObjMesh } from '../view/obj_mesh';
 import { Camera } from './camera';
@@ -123,6 +124,7 @@ export class Scene {
 
 					// Create light-view-projection matrix
 					const lightTarget: Vec3 = vec3.add(light.position, rotated);
+					// const lightTarget: Vec3 = vec3.add(light.position, light.direction || [0.0, 0.0, 0.0]);
 
 					const lightViewMatrix: Mat4 = mat4.lookAt(light.position, lightTarget, [0, 0, 1]);
 
@@ -134,7 +136,6 @@ export class Scene {
 						this.lightViewProjectionMatrices[16 * light_index + j] = <number>(
 							lightViewProjectionMatrixTemp.at(j)
 						);
-
 						this.lightData[16 * light_index + j] = <number>modelMatrix.at(j);
 					}
 

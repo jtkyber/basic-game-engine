@@ -28,7 +28,7 @@ export interface IObjectList {
 
 export const objectList: IObjectList = {
 	player: {
-		models: [new Player([-5, -9.5, 0], [0, 0, 0])],
+		models: [new Player([-7, -9.5, 0], [0, 0, 0])],
 		hasBoundingBox: true,
 		lights: [],
 	},
@@ -42,7 +42,7 @@ export const objectList: IObjectList = {
 				color: [1.0, 1.0, 1.0],
 				type: 'spot',
 				direction: [-1.0, 0.0, -0.4],
-				limit: utils.degToRad(180),
+				limit: utils.degToRad(90),
 			},
 		],
 	},
@@ -66,20 +66,20 @@ export const objectList: IObjectList = {
 	// 	hasBoundingBox: false,
 	// 	lights: [],
 	// },
-	sphere: {
-		models: [new Sphere([2, -9.5, 0], [0, 0, 0])],
-		hasBoundingBox: false,
-		lights: [
-			{
-				position: [-1.058959, 3.501874, 5.273695],
-				brightness: 1.5,
-				color: [1.0, 0.0, 0.0],
-				type: 'spot',
-				direction: [-1.0, 0.0, -0.7],
-				limit: utils.degToRad(5),
-			},
-		],
-	},
+	// sphere: {
+	// 	models: [new Sphere([2, -9.5, 0], [0, 0, 0])],
+	// 	hasBoundingBox: false,
+	// 	lights: [
+	// 		{
+	// 			position: [-1.058959, 3.501874, 5.273695],
+	// 			brightness: 1.5,
+	// 			color: [1.0, 0.0, 0.0],
+	// 			type: 'spot',
+	// 			direction: [-1.0, 0.0, -0.7],
+	// 			limit: utils.degToRad(15),
+	// 		},
+	// 	],
+	// },
 };
 
 export const objectCount = Object.keys(objectList).reduce((acc: number, name: string) => {

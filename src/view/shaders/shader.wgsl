@@ -57,7 +57,7 @@ const lightRadialFalloff: f32 = 2;
 @group(0) @binding(10) var<storage, read> normalMatrices: array<mat4x4f>;
 @group(0) @binding(11) var shadowDepthTexture: texture_depth_2d_array;
 @group(0) @binding(12) var shadowDepthSampler: sampler_comparison;
-@group(0) @binding(13) var<storage, read> lightProjectionMat: array<mat4x4f>;
+@group(0) @binding(13) var<storage, read> lightViewProjectionMat: array<mat4x4f>;
 
 // Bound for each material
 @group(1) @binding(0) var myTexture: texture_2d_array<f32>;
@@ -121,7 +121,7 @@ fn f_main(input: VertOut) -> FragOut {
 
         // Shadows ------------------
         
-        let posFromLight = lightProjectionMat[i] * input.worldPos;
+        let posFromLight = lightViewProjectionMat[i] * input.worldPos;
         let shadowPos = vec3f(posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5), posFromLight.z);
 
         var visibility = 0.0;

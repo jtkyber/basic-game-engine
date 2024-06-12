@@ -43,14 +43,25 @@ export class Shadow {
 
 	createTexture() {
 		this.depthTexture = this.device.createTexture({
+			label: 'shadow depth texture',
 			size: [this.depthTextureSize, this.depthTextureSize, lightCount],
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-			format: 'depth24plus',
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+			format: 'depth32float',
+		});
+
+		this.depthTextureView = this.depthTexture.createView({
+			format: 'depth32float',
+			dimension: '2d-array',
+			aspect: 'all',
+			baseMipLevel: 0,
+			mipLevelCount: 1,
+			baseArrayLayer: 0,
+			arrayLayerCount: lightCount,
 		});
 
 		for (let i: number = 0; i < lightCount; i++) {
 			this.depthTextureViewArray[i] = this.depthTexture.createView({
-				format: 'depth24plus',
+				format: 'depth32float',
 				dimension: '2d',
 				aspect: 'all',
 				baseMipLevel: 0,
@@ -59,16 +70,6 @@ export class Shadow {
 				arrayLayerCount: 1,
 			});
 		}
-
-		this.depthTextureView = this.depthTexture.createView({
-			format: 'depth24plus',
-			dimension: '2d-array',
-			aspect: 'all',
-			baseMipLevel: 0,
-			mipLevelCount: 1,
-			baseArrayLayer: 0,
-			arrayLayerCount: lightCount,
-		});
 	}
 
 	createSampler() {
@@ -157,24 +158,12 @@ export class Shadow {
 			depthStencil: {
 				depthWriteEnabled: true,
 				depthCompare: 'less',
-				format: 'depth24plus',
+				format: 'depth32float',
 			},
 			primitive: {
 				topology: 'triangle-list',
 				cullMode: 'back',
 			},
-		});
-	}
-
-	createTextureViewArray() {
-		this.depthTextureView = this.depthTexture.createView({
-			format: 'depth24plus',
-			dimension: '2d-array',
-			aspect: 'all',
-			baseMipLevel: 0,
-			mipLevelCount: 1,
-			baseArrayLayer: 0,
-			arrayLayerCount: lightCount,
 		});
 	}
 }

@@ -1,4 +1,4 @@
-import { Vec3, mat4, utils } from 'wgpu-matrix';
+import { Mat4, Vec3, mat4, utils } from 'wgpu-matrix';
 import { RenderData } from '../definitions';
 import { IObject, boundingBoxCount, lightCount, objectCount, objectList } from '../objectList';
 import { one_four_by_four_four } from '../utils/matrices';
@@ -275,7 +275,7 @@ export class Renderer {
 	}
 	async makeDepthBufferResources() {
 		this.depthStencilState = {
-			format: 'depth24plus',
+			format: 'depth32float',
 			depthWriteEnabled: true,
 			depthCompare: 'less-equal',
 		};
@@ -288,12 +288,12 @@ export class Renderer {
 
 		this.depthStencilBuffer = this.device.createTexture({
 			size: size,
-			format: 'depth24plus',
+			format: 'depth32float',
 			usage: GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 
 		this.depthStencilView = this.depthStencilBuffer.createView({
-			format: 'depth24plus',
+			format: 'depth32float',
 			dimension: '2d',
 			aspect: 'depth-only',
 		});
@@ -717,11 +717,7 @@ export class Renderer {
 		}
 	}
 
-	writeFrameBuffers(renderables: RenderData, cameraPosition: Vec3) {
-		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 130);
-		const view = renderables.viewTransform;
-
+	writeFrameBuffers(renderables: RenderData, cameraPosition: Vec3, projection: Mat4, view: Mat4) {
 		// Pass matrices into the same buffer
 		// Shader will take it in as an object with 3 matrices because of the way we set it up
 		this.device.queue.writeBuffer(
@@ -788,13 +784,17 @@ export class Renderer {
 		this.device.queue.writeBuffer(this.normalMatrixBuffer, 0, <ArrayBuffer>new Float32Array(normalMatrixArr));
 	}
 
-	render = (
+	render = async (
 		renderables: RenderData,
 		cameraPosition: Vec3,
 		camForwards: Vec3,
 		camRight: Vec3,
 		camUp: Vec3
 	) => {
+		// If zFar (last v + alue) is too large, depth buffer gets confused
+		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 130);
+		const view = renderables.viewTransform;
+
 		const dy = Math.tan(this.fov / 2);
 		const dx = dy * this.aspect;
 
@@ -822,12 +822,11 @@ export class Renderer {
 			12
 		);
 
-		this.writeFrameBuffers(renderables, cameraPosition);
-
-		let objectsDrawn: number = 0;
+		this.writeFrameBuffers(renderables, cameraPosition, projection, view);
 
 		// Shadow Pass -------------------------------------------
 
+		this.device.queue.writeBuffer(this.lightIndexBuffer, 0, new Float32Array(0));
 		for (let i: number = 0; i < lightCount; i++) {
 			this.shadowPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
 				colorAttachments: [],
@@ -839,22 +838,39 @@ export class Renderer {
 				},
 			});
 
-			this.device.queue.writeBuffer(this.lightIndexBuffer, 0, new Float32Array(i));
 			this.shadowPass.setPipeline(this.shadow.pipeline);
 			this.shadowPass.setBindGroup(0, this.shadow.bindGroup);
 
-			objectsDrawn = 0;
 			for (let j: number = 0; j < objectCount; j++) {
 				this.shadowPass.setVertexBuffer(0, this.objectMeshes[j].positionBuffer);
-				this.shadowPass.draw(this.objectMeshes[j].vCount / 3, 1, 0, objectsDrawn);
-
-				objectsDrawn++;
+				this.shadowPass.draw(this.objectMeshes[j].vertexCount, 1, 0, j);
 			}
 
 			this.shadowPass.end();
 		}
 
-		this.shadow.createTextureViewArray();
+		// const buffer = this.device.createBuffer({
+		// 	label: 'buffer',
+		// 	size: 1024 * 1024 * 4 * lightCount,
+		// 	usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+		// });
+
+		// const stagingBuffer = this.device.createBuffer({
+		// 	label: 'stagingBuffer',
+		// 	size: 1024 * 1024 * 4,
+		// 	usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+		// });
+
+		// this.encoder.copyTextureToBuffer(
+		// 	{ texture: this.shadow.depthTexture, mipLevel: 0, origin: [0, 0, 0] },
+		// 	{ buffer: buffer, offset: 0, bytesPerRow: 1024 * 4, rowsPerImage: 1024 },
+		// 	{
+		// 		width: 1024,
+		// 		height: 1024,
+		// 		depthOrArrayLayers: lightCount,
+		// 	}
+		// );
+		// this.encoder.copyBufferToBuffer(buffer, 0, stagingBuffer, 0, 1024 * 1024 * 4);
 
 		// -------------------------------------------------------
 
@@ -877,7 +893,7 @@ export class Renderer {
 		this.renderPass.setPipeline(this.pipeline);
 		this.renderPass.setBindGroup(0, this.frameBindGroup);
 
-		objectsDrawn = 0;
+		let objectsDrawn = 0;
 
 		for (let i: number = 0; i < objectCount; i++) {
 			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
@@ -907,5 +923,19 @@ export class Renderer {
 
 		this.renderPass.end();
 		this.device.queue.submit([this.encoder.finish()]);
+
+		// const resultBuffer = new ArrayBuffer(1 * 1024 * 1024 * 4);
+		// await stagingBuffer.mapAsync(GPUMapMode.READ);
+		// const stagingBufferArrayBuffer = stagingBuffer.getMappedRange();
+		// new Float32Array(resultBuffer).set(new Float32Array(stagingBufferArrayBuffer));
+		// stagingBuffer.unmap();
+		// const resBuff = new Float32Array(resultBuffer);
+
+		// const temp = [];
+		// for (let i = 0; i < resBuff.length; i++) {
+		// 	if (resBuff[i] !== 0 && resBuff[i] !== 1) temp.push(resBuff[i]);
+		// }
+
+		// console.log(temp);
 	};
 }
