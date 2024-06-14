@@ -74,7 +74,11 @@ export class Shadow {
 
 	createSampler() {
 		this.depthSampler = this.device.createSampler({
-			compare: 'less',
+			compare: 'greater',
+			addressModeU: 'clamp-to-edge',
+			addressModeV: 'clamp-to-edge',
+			magFilter: 'linear',
+			minFilter: 'linear',
 		});
 	}
 
@@ -157,7 +161,7 @@ export class Shadow {
 			},
 			depthStencil: {
 				depthWriteEnabled: true,
-				depthCompare: 'less',
+				depthCompare: 'greater',
 				format: 'depth24plus',
 			},
 			primitive: {

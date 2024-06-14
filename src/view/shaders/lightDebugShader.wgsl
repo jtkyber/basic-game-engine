@@ -8,20 +8,35 @@ struct TransformData {
 
 @vertex
 fn v_main(@builtin(vertex_index) id: u32) -> @builtin(position) vec4f {
-     let vertices = array<vec3f, 36> (
-        vec3f(-1, 1, 1), vec3f(-1, 1, 0), vec3f(1, 1, 0), 
-        vec3f(-1, 1, 1), vec3f(1, 1, 0), vec3f(1, 1, 1), 
-        vec3f(1, -1, 1), vec3f(1, 1, 1), vec3f(1, 1, 0), 
-        vec3f(1, -1, 1), vec3f(1, 1, 0), vec3f(1, -1, 0), 
-        vec3f(1, -1, 0), vec3f(1, 1, 0), vec3f(-1, 1, 0), 
-        vec3f(1, -1, 0), vec3f(-1, 1, 0), vec3f(-1, -1, 0), 
-        vec3f(-1, -1, 0), vec3f(-1, -1, 1), vec3f(1, -1, 1), 
-        vec3f(-1, -1, 0), vec3f(1, -1, 1), vec3f(1, -1, 0), 
-        vec3f(-1, -1, 1), vec3f(-1, 1, 1), vec3f(1, 1, 1), 
-        vec3f(-1, -1, 1), vec3f(1, 1, 1), vec3f(1, -1, 1), 
-        vec3f(-1, -1, 0), vec3f(-1, 1, 0), vec3f(-1, 1, 1), 
-        vec3f(-1, -1, 0), vec3f(-1, 1, 1), vec3f(-1, -1, 1)
+
+     let vertices = array<vec3f, 8> (
+        vec3f(-1, 1, 0),
+        vec3f(-1, 1, 1),
+
+        vec3f(1, 1, 0),
+        vec3f(1, 1, 1),
+
+        vec3f(-1, -1, 0),
+        vec3f(-1, -1, 1),
+
+        vec3f(1, -1, 0),
+        vec3f(1, -1, 1),
     );
+
+    //  let vertices = array<vec3f, 36> (
+    //     vec3f(-1, 1, 1), vec3f(-1, 1, 0), vec3f(1, 1, 0), 
+    //     vec3f(-1, 1, 1), vec3f(1, 1, 0), vec3f(1, 1, 1), 
+    //     vec3f(1, -1, 1), vec3f(1, 1, 1), vec3f(1, 1, 0), 
+    //     vec3f(1, -1, 1), vec3f(1, 1, 0), vec3f(1, -1, 0), 
+    //     vec3f(1, -1, 0), vec3f(1, 1, 0), vec3f(-1, 1, 0), 
+    //     vec3f(1, -1, 0), vec3f(-1, 1, 0), vec3f(-1, -1, 0), 
+    //     vec3f(-1, -1, 0), vec3f(-1, -1, 1), vec3f(1, -1, 1), 
+    //     vec3f(-1, -1, 0), vec3f(1, -1, 1), vec3f(1, -1, 0), 
+    //     vec3f(-1, -1, 1), vec3f(-1, 1, 1), vec3f(1, 1, 1), 
+    //     vec3f(-1, -1, 1), vec3f(1, 1, 1), vec3f(1, -1, 1), 
+    //     vec3f(-1, -1, 0), vec3f(-1, 1, 0), vec3f(-1, 1, 1), 
+    //     vec3f(-1, -1, 0), vec3f(-1, 1, 1), vec3f(-1, -1, 1)
+    // );
 
     var worldPos = inverseLightViewProjectionMat[0] * vec4f(vertices[id], 1.0);
     worldPos /= worldPos.w;

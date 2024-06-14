@@ -139,7 +139,7 @@ export class Renderer {
 		this.context.configure({
 			device: this.device,
 			format: this.format,
-			alphaMode: 'premultiplied',
+			alphaMode: 'opaque',
 		});
 	}
 
@@ -296,7 +296,7 @@ export class Renderer {
 		this.depthStencilState = {
 			format: 'depth32float',
 			depthWriteEnabled: true,
-			depthCompare: 'less-equal',
+			depthCompare: 'greater-equal',
 		};
 
 		const size: GPUExtent3D = {
@@ -319,7 +319,7 @@ export class Renderer {
 
 		this.depthStencilAttachment = {
 			view: this.depthStencilView,
-			depthClearValue: 1.0,
+			depthClearValue: 0.0,
 			depthLoadOp: 'clear',
 			depthStoreOp: 'store',
 		};
@@ -826,7 +826,7 @@ export class Renderer {
 		camUp: Vec3
 	) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspective(this.fov, this.aspect, 0.1, 130);
+		const projection = mat4.perspectiveReverseZ(this.fov, this.aspect, 0.1, 130);
 		const view = renderables.viewTransform;
 
 		const dy = Math.tan(this.fov / 2);
@@ -866,7 +866,7 @@ export class Renderer {
 				colorAttachments: [],
 				depthStencilAttachment: {
 					view: this.shadow.depthTextureViewArray[i],
-					depthClearValue: 1.0,
+					depthClearValue: 0.0,
 					depthLoadOp: 'clear',
 					depthStoreOp: 'store',
 				},
@@ -882,29 +882,6 @@ export class Renderer {
 
 			this.shadowPass.end();
 		}
-
-		// const buffer = this.device.createBuffer({
-		// 	label: 'buffer',
-		// 	size: 1024 * 1024 * 4 * lightCount,
-		// 	usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-		// });
-
-		// const stagingBuffer = this.device.createBuffer({
-		// 	label: 'stagingBuffer',
-		// 	size: 1024 * 1024 * 4,
-		// 	usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-		// });
-
-		// this.encoder.copyTextureToBuffer(
-		// 	{ texture: this.shadow.depthTexture, mipLevel: 0, origin: [0, 0, 0] },
-		// 	{ buffer: buffer, offset: 0, bytesPerRow: 1024 * 4, rowsPerImage: 1024 },
-		// 	{
-		// 		width: 1024,
-		// 		height: 1024,
-		// 		depthOrArrayLayers: lightCount,
-		// 	}
-		// );
-		// this.encoder.copyBufferToBuffer(buffer, 0, stagingBuffer, 0, 1024 * 1024 * 4);
 
 		// -------------------------------------------------------
 
@@ -958,24 +935,10 @@ export class Renderer {
 		if (this.lightDebug) {
 			this.renderPass.setPipeline(this.lightFrustums.pipeline);
 			this.renderPass.setBindGroup(0, this.lightFrustums.bindGroup);
-			this.renderPass.draw(36, lightCount, 0, 0);
+			this.renderPass.draw(8, lightCount, 0, 0);
 		}
 
 		this.renderPass.end();
 		this.device.queue.submit([this.encoder.finish()]);
-
-		// const resultBuffer = new ArrayBuffer(1 * 1024 * 1024 * 4);
-		// await stagingBuffer.mapAsync(GPUMapMode.READ);
-		// const stagingBufferArrayBuffer = stagingBuffer.getMappedRange();
-		// new Float32Array(resultBuffer).set(new Float32Array(stagingBufferArrayBuffer));
-		// stagingBuffer.unmap();
-		// const resBuff = new Float32Array(resultBuffer);
-
-		// const temp = [];
-		// for (let i = 0; i < resBuff.length; i++) {
-		// 	if (resBuff[i] !== 0 && resBuff[i] !== 1) temp.push(resBuff[i]);
-		// }
-
-		// console.log(temp);
 	};
 }

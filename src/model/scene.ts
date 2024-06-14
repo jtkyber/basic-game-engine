@@ -124,13 +124,17 @@ export class Scene {
 
 					// Translate light to world space
 					const translatedPos: Vec3 = vec3.add(light.position, model.position);
+					// const translatedPos: Vec3 = one_four_by_four_four(
+					// 	new Float32Array(light.position),
+					// 	new Float32Array(modelMatrix)
+					// );
 					// Create light-view-projection matrix
 					const lightTarget: Vec3 = vec3.add(translatedPos, rotated);
-					// const lightTarget: Vec3 = vec3.add(light.position, light.direction || [0.0, 0.0, 0.0]);
+					// const lightTarget: Vec3 = vec3.add(translatedPos, light.direction || [0.0, 0.0, 0.0]);
 
 					const lightViewMatrix: Mat4 = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
 
-					const lightProjectionMatrix: Mat4 = mat4.perspective(light.limit || 1.0, 1.0, 0.1, 50);
+					const lightProjectionMatrix: Mat4 = mat4.perspectiveReverseZ(light.limit || 1.0, 1.0, 0.1, 80);
 
 					const lightViewProjectionMatrixTemp: Mat4 = mat4.multiply(lightProjectionMatrix, lightViewMatrix);
 

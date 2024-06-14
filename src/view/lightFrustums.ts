@@ -88,7 +88,7 @@ export class lightFrustums {
 				],
 			},
 			primitive: {
-				topology: 'line-strip',
+				topology: 'line-list',
 			},
 			depthStencil: this.depthStencilState,
 		});
