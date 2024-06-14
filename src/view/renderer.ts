@@ -51,7 +51,6 @@ export class Renderer {
 	lightWorldPosBuffer: GPUBuffer;
 	lightViewProjBuffer: GPUBuffer;
 	inverseLightViewProjBuffer: GPUBuffer;
-	lightIndexBuffer: GPUBuffer;
 	normalMatrixBuffer: GPUBuffer;
 	parameterBuffer: GPUBuffer;
 
@@ -95,8 +94,6 @@ export class Renderer {
 	depthStencilView: GPUTextureView;
 	depthStencilAttachment: GPURenderPassDepthStencilAttachment;
 
-	lightIndices: Float32Array;
-
 	constructor(canvas: HTMLCanvasElement, collisionDebug: boolean, lightDebug: boolean) {
 		this.collisionDebug = collisionDebug;
 		this.lightDebug = lightDebug;
@@ -106,28 +103,13 @@ export class Renderer {
 		this.aspect = this.canvas.width / this.canvas.height;
 		this.objectMeshes = [];
 		this.objectMaterials = [];
-		// this.lightIndices = new Float32Array(256 - ((4 * lightCount) % 256)).set(
-		// 	[...Array(lightCount).keys()].map(i => i + 1)
-		// );
-
-		// this.lightIndices = new Float32Array(lightCount * (lightCount + (64 - (lightCount % 64)))).map(
-		// 	(num, i) => {
-		// 		if (i % 64 === 0) return i / 64;
-		// 		// if (i <lightCount) return i;
-		// 		return 0;
-		// 	}
-		// );
-
-		this.lightIndices = new Float32Array(lightCount).map((num, i) => {
-			return 256 * i;
-		});
 	}
 
 	async initialize() {
 		await this.makeBindGroupLayouts();
 		await this.makeDepthBufferResources();
 		await this.createAssets();
-		this.shadow = new Shadow(this.device, this.objectBuffer, this.lightViewProjBuffer, this.lightIndexBuffer);
+		this.shadow = new Shadow(this.device, this.objectBuffer, this.lightViewProjBuffer);
 		this.lightFrustums = new lightFrustums(
 			this.device,
 			this.format,
@@ -227,13 +209,6 @@ export class Renderer {
 		this.inverseLightViewProjBuffer = this.device.createBuffer({
 			label: 'inverseLightViewProjBuffer',
 			size: 4 * 16 * lightCount,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		});
-
-		const alignTo256: number = 256 - ((4 * lightCount) % 256);
-		this.lightIndexBuffer = this.device.createBuffer({
-			label: 'lightIndexBuffer',
-			size: 256 * lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -844,7 +819,7 @@ export class Renderer {
 		camUp: Vec3
 	) => {
 		// If zFar (last v + alue) is too large, depth buffer gets confused
-		const projection = mat4.perspectiveReverseZ(this.fov, this.aspect, 0.1, 130);
+		const projection = mat4.perspectiveReverseZ(this.fov, this.aspect, 0.1, 100);
 		const view = renderables.viewTransform;
 
 		const dy = Math.tan(this.fov / 2);

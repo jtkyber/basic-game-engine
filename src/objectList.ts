@@ -38,8 +38,8 @@ export const objectList: IObjectList = {
 		lights: [
 			{
 				position: [-4.936149, 0.714075, 3.513694],
-				brightness: 3.5,
-				color: [1.0, 1.0, 1.0],
+				brightness: 2.5,
+				color: [1.0, 1.0, 0.8],
 				type: 'spot',
 				direction: [-1.0, 0.0, -0.4],
 				limit: utils.degToRad(90),
@@ -76,7 +76,7 @@ export const objectList: IObjectList = {
 				color: [1.0, 0.0, 0.0],
 				type: 'spot',
 				direction: [-1.0, 0.0, 0],
-				limit: utils.degToRad(45),
+				limit: utils.degToRad(35),
 			},
 		],
 	},

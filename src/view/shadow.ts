@@ -14,20 +14,13 @@ export class Shadow {
 	bindGroup: GPUBindGroup;
 	modelMatrixBuffer: GPUBuffer;
 	lightViewProjBuffer: GPUBuffer;
-	lightIndexBuffer: GPUBuffer;
 
-	constructor(
-		device: GPUDevice,
-		modelMatrixBuffer: GPUBuffer,
-		lightViewProjBuffer: GPUBuffer,
-		lightIndexBuffer: GPUBuffer
-	) {
+	constructor(device: GPUDevice, modelMatrixBuffer: GPUBuffer, lightViewProjBuffer: GPUBuffer) {
 		this.device = device;
 		this.depthTextureSize = 1024;
 		this.depthTextureViewArray = [];
 		this.modelMatrixBuffer = modelMatrixBuffer;
 		this.lightViewProjBuffer = lightViewProjBuffer;
-		this.lightIndexBuffer = lightIndexBuffer;
 	}
 
 	async init() {
@@ -100,14 +93,6 @@ export class Shadow {
 						type: 'read-only-storage',
 					},
 				},
-				// {
-				// 	binding: 2,
-				// 	visibility: GPUShaderStage.VERTEX,
-				// 	buffer: {
-				// 		type: 'read-only-storage',
-				// 		hasDynamicOffset: true,
-				// 	},
-				// },
 			],
 		});
 	}
@@ -129,12 +114,6 @@ export class Shadow {
 						buffer: this.lightViewProjBuffer,
 					},
 				},
-				// {
-				// 	binding: 2,
-				// 	resource: {
-				// 		buffer: this.lightIndexBuffer,
-				// 	},
-				// },
 			],
 		});
 	}

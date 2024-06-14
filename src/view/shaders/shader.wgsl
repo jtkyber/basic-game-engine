@@ -121,11 +121,11 @@ fn f_main(input: VertOut) -> FragOut {
 
         // Shadows ------------------
         
+        var visibility = 0.0;
         var posFromLight = lightViewProjectionMat[i] * input.worldPos;
         posFromLight /= posFromLight.w;
         let shadowPos = vec3f(posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5), posFromLight.z);
 
-        var visibility = 0.0;
         let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
         for (var y = -1; y <= 1; y++) {
             for (var x = -1; x <= 1; x++) {
