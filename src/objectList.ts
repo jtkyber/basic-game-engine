@@ -38,7 +38,7 @@ export const objectList: IObjectList = {
 		lights: [
 			{
 				position: [-4.936149, 0.714075, 3.513694],
-				brightness: 3.0,
+				brightness: 3.5,
 				color: [1.0, 1.0, 1.0],
 				type: 'spot',
 				direction: [-1.0, 0.0, -0.4],
@@ -70,14 +70,14 @@ export const objectList: IObjectList = {
 		models: [new Sphere([2, -9.5, 0], [0, 0, 0])],
 		hasBoundingBox: false,
 		lights: [
-			// {
-			// 	position: [-1, 0, 1],
-			// 	brightness: 2,
-			// 	color: [1.0, 0.0, 0.0],
-			// 	type: 'spot',
-			// 	direction: [-1.0, 0.0, 0],
-			// 	limit: utils.degToRad(45),
-			// },
+			{
+				position: [-1, 0, 1],
+				brightness: 1.5,
+				color: [1.0, 0.0, 0.0],
+				type: 'spot',
+				direction: [-1.0, 0.0, 0],
+				limit: utils.degToRad(45),
+			},
 		],
 	},
 };

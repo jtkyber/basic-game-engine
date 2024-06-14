@@ -133,7 +133,7 @@ fn f_main(input: VertOut) -> FragOut {
 
                 visibility += textureSampleCompare(
                     shadowDepthTexture, shadowDepthSampler,
-                    shadowPos.xy + offset, i, shadowPos.z + 0.0003
+                    shadowPos.xy + offset, i, shadowPos.z - 0.0000
                 );
             }
         }

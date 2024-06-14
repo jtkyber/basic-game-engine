@@ -22,7 +22,7 @@ export class App {
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
 		this.collisionDebug = false;
-		this.lightDebug = true;
+		this.lightDebug = false;
 
 		this.pointerLocked = false;
 		this.maxFramerate = 60;

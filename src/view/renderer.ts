@@ -95,6 +95,8 @@ export class Renderer {
 	depthStencilView: GPUTextureView;
 	depthStencilAttachment: GPURenderPassDepthStencilAttachment;
 
+	lightIndices: Float32Array;
+
 	constructor(canvas: HTMLCanvasElement, collisionDebug: boolean, lightDebug: boolean) {
 		this.collisionDebug = collisionDebug;
 		this.lightDebug = lightDebug;
@@ -104,6 +106,21 @@ export class Renderer {
 		this.aspect = this.canvas.width / this.canvas.height;
 		this.objectMeshes = [];
 		this.objectMaterials = [];
+		// this.lightIndices = new Float32Array(256 - ((4 * lightCount) % 256)).set(
+		// 	[...Array(lightCount).keys()].map(i => i + 1)
+		// );
+
+		// this.lightIndices = new Float32Array(lightCount * (lightCount + (64 - (lightCount % 64)))).map(
+		// 	(num, i) => {
+		// 		if (i % 64 === 0) return i / 64;
+		// 		// if (i <lightCount) return i;
+		// 		return 0;
+		// 	}
+		// );
+
+		this.lightIndices = new Float32Array(lightCount).map((num, i) => {
+			return 256 * i;
+		});
 	}
 
 	async initialize() {
@@ -213,10 +230,11 @@ export class Renderer {
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
+		const alignTo256: number = 256 - ((4 * lightCount) % 256);
 		this.lightIndexBuffer = this.device.createBuffer({
 			label: 'lightIndexBuffer',
-			size: 4,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+			size: 256 * lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		this.normalMatrixBuffer = this.device.createBuffer({
@@ -860,7 +878,6 @@ export class Renderer {
 
 		// Shadow Pass -------------------------------------------
 
-		this.device.queue.writeBuffer(this.lightIndexBuffer, 0, new Float32Array(0));
 		for (let i: number = 0; i < lightCount; i++) {
 			this.shadowPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
 				colorAttachments: [],
@@ -877,7 +894,7 @@ export class Renderer {
 
 			for (let j: number = 0; j < objectCount; j++) {
 				this.shadowPass.setVertexBuffer(0, this.objectMeshes[j].positionBuffer);
-				this.shadowPass.draw(this.objectMeshes[j].vertexCount, 1, 0, j);
+				this.shadowPass.draw(this.objectMeshes[j].vertexCount, 1, 0, (i << 16) | j);
 			}
 
 			this.shadowPass.end();

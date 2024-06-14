@@ -100,13 +100,14 @@ export class Shadow {
 						type: 'read-only-storage',
 					},
 				},
-				{
-					binding: 2,
-					visibility: GPUShaderStage.VERTEX,
-					buffer: {
-						type: 'uniform',
-					},
-				},
+				// {
+				// 	binding: 2,
+				// 	visibility: GPUShaderStage.VERTEX,
+				// 	buffer: {
+				// 		type: 'read-only-storage',
+				// 		hasDynamicOffset: true,
+				// 	},
+				// },
 			],
 		});
 	}
@@ -128,12 +129,12 @@ export class Shadow {
 						buffer: this.lightViewProjBuffer,
 					},
 				},
-				{
-					binding: 2,
-					resource: {
-						buffer: this.lightIndexBuffer,
-					},
-				},
+				// {
+				// 	binding: 2,
+				// 	resource: {
+				// 		buffer: this.lightIndexBuffer,
+				// 	},
+				// },
 			],
 		});
 	}
@@ -166,7 +167,7 @@ export class Shadow {
 			},
 			primitive: {
 				topology: 'triangle-list',
-				cullMode: 'back',
+				cullMode: 'front',
 			},
 		});
 	}

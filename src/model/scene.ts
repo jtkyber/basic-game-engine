@@ -123,11 +123,11 @@ export class Scene {
 					this.rotatedLightDir[4 * light_index + 3] = 0;
 
 					// Translate light to world space
-					const translatedPos: Vec3 = vec3.add(light.position, model.position);
-					// const translatedPos: Vec3 = one_four_by_four_four(
-					// 	new Float32Array(light.position),
-					// 	new Float32Array(modelMatrix)
-					// );
+					// const translatedPos: Vec3 = vec3.add(light.position, model.position);
+					const translatedPos: Vec3 = one_four_by_four_four(
+						new Float32Array(light.position),
+						new Float32Array(modelMatrix)
+					);
 					// Create light-view-projection matrix
 					const lightTarget: Vec3 = vec3.add(translatedPos, rotated);
 					// const lightTarget: Vec3 = vec3.add(translatedPos, light.direction || [0.0, 0.0, 0.0]);
