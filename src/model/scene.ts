@@ -122,13 +122,15 @@ export class Scene {
 					this.rotatedLightDir[4 * light_index + 2] = rotated[2];
 					this.rotatedLightDir[4 * light_index + 3] = 0;
 
+					// Translate light to world space
+					const translatedPos: Vec3 = vec3.add(light.position, model.position);
 					// Create light-view-projection matrix
-					const lightTarget: Vec3 = vec3.add(light.position, rotated);
+					const lightTarget: Vec3 = vec3.add(translatedPos, rotated);
 					// const lightTarget: Vec3 = vec3.add(light.position, light.direction || [0.0, 0.0, 0.0]);
 
-					const lightViewMatrix: Mat4 = mat4.lookAt(light.position, lightTarget, [0, 0, 1]);
+					const lightViewMatrix: Mat4 = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
 
-					const lightProjectionMatrix: Mat4 = mat4.perspective(light.limit || 1.0, 1.0, 0.1, 30);
+					const lightProjectionMatrix: Mat4 = mat4.perspective(light.limit || 1.0, 1.0, 0.1, 50);
 
 					const lightViewProjectionMatrixTemp: Mat4 = mat4.multiply(lightProjectionMatrix, lightViewMatrix);
 

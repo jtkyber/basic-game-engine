@@ -38,7 +38,7 @@ export const objectList: IObjectList = {
 		lights: [
 			{
 				position: [-4.936149, 0.714075, 3.513694],
-				brightness: 2.0,
+				brightness: 3.0,
 				color: [1.0, 1.0, 1.0],
 				type: 'spot',
 				direction: [-1.0, 0.0, -0.4],
