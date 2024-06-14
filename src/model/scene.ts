@@ -128,7 +128,7 @@ export class Scene {
 
 					const lightViewMatrix: Mat4 = mat4.lookAt(light.position, lightTarget, [0, 0, 1]);
 
-					const lightProjectionMatrix: Mat4 = mat4.perspective(light.limit || 1.0, 1.0, 0.1, 130);
+					const lightProjectionMatrix: Mat4 = mat4.perspective(light.limit || 1.0, 1.0, 0.1, 30);
 
 					const lightViewProjectionMatrixTemp: Mat4 = mat4.multiply(lightProjectionMatrix, lightViewMatrix);
 

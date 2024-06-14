@@ -9,6 +9,6 @@ struct Input {
 
 @vertex
 fn vs_main(in: Input) -> @builtin(position) vec4f {
-    let vertWorldPos = modelMat[in.idx] * vec4f(in.vertexPosition, 1.0);
+    var vertWorldPos = modelMat[in.idx] * vec4f(in.vertexPosition, 1.0);
     return lightViewProjectionMat[0] * vertWorldPos;
 }

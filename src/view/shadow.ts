@@ -46,11 +46,11 @@ export class Shadow {
 			label: 'shadow depth texture',
 			size: [this.depthTextureSize, this.depthTextureSize, lightCount],
 			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
-			format: 'depth32float',
+			format: 'depth24plus',
 		});
 
 		this.depthTextureView = this.depthTexture.createView({
-			format: 'depth32float',
+			format: 'depth24plus',
 			dimension: '2d-array',
 			aspect: 'all',
 			baseMipLevel: 0,
@@ -61,7 +61,7 @@ export class Shadow {
 
 		for (let i: number = 0; i < lightCount; i++) {
 			this.depthTextureViewArray[i] = this.depthTexture.createView({
-				format: 'depth32float',
+				format: 'depth24plus',
 				dimension: '2d',
 				aspect: 'all',
 				baseMipLevel: 0,
@@ -158,7 +158,7 @@ export class Shadow {
 			depthStencil: {
 				depthWriteEnabled: true,
 				depthCompare: 'less',
-				format: 'depth32float',
+				format: 'depth24plus',
 			},
 			primitive: {
 				topology: 'triangle-list',

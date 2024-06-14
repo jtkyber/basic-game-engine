@@ -3,6 +3,7 @@ import { RenderData } from '../definitions';
 import { IObject, boundingBoxCount, lightCount, objectCount, objectList } from '../objectList';
 import { one_four_by_four_four } from '../utils/matrices';
 import { CubeMaterial } from './cube_material';
+import { lightFrustums } from './lightFrustums';
 import { LightMesh } from './light_mesh';
 import { Material } from './material';
 import { ObjMesh } from './obj_mesh';
@@ -15,9 +16,11 @@ import { TriangleMesh } from './triangle_mesh';
 export class Renderer {
 	// Objects
 	collisionDebug: boolean;
+	lightDebug: boolean;
 
 	// Shadow
 	shadow: Shadow;
+	lightFrustums: lightFrustums;
 
 	// Canvas Stuff
 	canvas: HTMLCanvasElement;
@@ -47,6 +50,7 @@ export class Renderer {
 	lightLimitBuffer: GPUBuffer;
 	lightWorldPosBuffer: GPUBuffer;
 	lightViewProjBuffer: GPUBuffer;
+	inverseLightViewProjBuffer: GPUBuffer;
 	lightIndexBuffer: GPUBuffer;
 	normalMatrixBuffer: GPUBuffer;
 	parameterBuffer: GPUBuffer;
@@ -91,8 +95,9 @@ export class Renderer {
 	depthStencilView: GPUTextureView;
 	depthStencilAttachment: GPURenderPassDepthStencilAttachment;
 
-	constructor(canvas: HTMLCanvasElement, collisionDebug: boolean) {
+	constructor(canvas: HTMLCanvasElement, collisionDebug: boolean, lightDebug: boolean) {
 		this.collisionDebug = collisionDebug;
+		this.lightDebug = lightDebug;
 		this.canvas = canvas;
 		this.context = <GPUCanvasContext>canvas.getContext('webgpu');
 		this.fov = utils.degToRad(60);
@@ -106,7 +111,15 @@ export class Renderer {
 		await this.makeDepthBufferResources();
 		await this.createAssets();
 		this.shadow = new Shadow(this.device, this.objectBuffer, this.lightViewProjBuffer, this.lightIndexBuffer);
+		this.lightFrustums = new lightFrustums(
+			this.device,
+			this.format,
+			this.depthStencilState,
+			this.inverseLightViewProjBuffer,
+			this.uniformBuffer
+		);
 		await this.shadow.init();
+		await this.lightFrustums.init();
 		await this.makePipelines();
 		await this.makeBindGroup();
 	}
@@ -190,6 +203,12 @@ export class Renderer {
 
 		this.lightViewProjBuffer = this.device.createBuffer({
 			label: 'lightViewProjBuffer',
+			size: 4 * 16 * lightCount,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		this.inverseLightViewProjBuffer = this.device.createBuffer({
+			label: 'inverseLightViewProjBuffer',
 			size: 4 * 16 * lightCount,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
@@ -750,6 +769,21 @@ export class Renderer {
 		this.device.queue.writeBuffer(this.lightDirectionBuffer, 0, renderables.rotatedLightDir);
 		this.device.queue.writeBuffer(this.lightViewProjBuffer, 0, renderables.lightViewProjectionMatrices);
 
+		if (this.lightDebug) {
+			const inverseLightViewProjMatrixArr: number[] = [];
+			for (let i = 0; i < lightCount; i++) {
+				const inverseLightViewProjMatrix: Mat4 = mat4.inverse(
+					renderables.lightViewProjectionMatrices.slice(i * 16, i * 16 + 16)
+				);
+				inverseLightViewProjMatrixArr.push(...inverseLightViewProjMatrix);
+			}
+			this.device.queue.writeBuffer(
+				this.inverseLightViewProjBuffer,
+				0,
+				new Float32Array(inverseLightViewProjMatrixArr)
+			);
+		}
+
 		if (this.collisionDebug) {
 			this.device.queue.writeBuffer(
 				this.boundingBoxBuffer,
@@ -919,6 +953,12 @@ export class Renderer {
 					b_index++;
 				}
 			}
+		}
+
+		if (this.lightDebug) {
+			this.renderPass.setPipeline(this.lightFrustums.pipeline);
+			this.renderPass.setBindGroup(0, this.lightFrustums.bindGroup);
+			this.renderPass.draw(36, lightCount, 0, 0);
 		}
 
 		this.renderPass.end();

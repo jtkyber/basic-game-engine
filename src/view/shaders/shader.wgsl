@@ -121,7 +121,8 @@ fn f_main(input: VertOut) -> FragOut {
 
         // Shadows ------------------
         
-        let posFromLight = lightViewProjectionMat[i] * input.worldPos;
+        var posFromLight = lightViewProjectionMat[i] * input.worldPos;
+        posFromLight /= posFromLight.w;
         let shadowPos = vec3f(posFromLight.xy * vec2f(0.5, -0.5) + vec2f(0.5), posFromLight.z);
 
         var visibility = 0.0;
@@ -132,7 +133,7 @@ fn f_main(input: VertOut) -> FragOut {
 
                 visibility += textureSampleCompare(
                     shadowDepthTexture, shadowDepthSampler,
-                    shadowPos.xy + offset, i, shadowPos.z - 0.007
+                    shadowPos.xy + offset, i, shadowPos.z - 0.0007
                 );
             }
         }

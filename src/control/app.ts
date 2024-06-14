@@ -8,6 +8,7 @@ export class App {
 	canvas: HTMLCanvasElement;
 	renderer: Renderer;
 	collisionDebug: boolean;
+	lightDebug: boolean;
 	scene: Scene;
 	keysPressed: string[];
 	moveVec: Vec2;
@@ -21,12 +22,13 @@ export class App {
 	constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
 		this.collisionDebug = false;
+		this.lightDebug = true;
 
 		this.pointerLocked = false;
 		this.maxFramerate = 60;
 		this.fpsInterval = 1000 / this.maxFramerate; // ms per frame
 
-		this.renderer = new Renderer(this.canvas, this.collisionDebug);
+		this.renderer = new Renderer(this.canvas, this.collisionDebug, this.lightDebug);
 		this.scene = new Scene();
 
 		document.addEventListener('keydown', e => this.handleKeyDown(e));
