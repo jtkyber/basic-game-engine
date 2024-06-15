@@ -38,16 +38,24 @@ export const objectList: IObjectList = {
 		lights: [
 			{
 				position: [-4.936149, 0.714075, 3.513694],
-				brightness: 2.5,
-				color: [1.0, 1.0, 0.8],
+				brightness: 1.5,
+				color: [0.0, 1.0, 1.0],
 				type: 'spot',
-				direction: [-1.0, 0.0, -0.4],
-				limit: utils.degToRad(90),
+				direction: [-1.0, 0.5, -0.4],
+				limit: utils.degToRad(80),
+			},
+			{
+				position: [-4.936149, 0.714075, 3.513694],
+				brightness: 1.5,
+				color: [1.0, 0.6, 0.0],
+				type: 'spot',
+				direction: [-1.0, -0.5, -0.4],
+				limit: utils.degToRad(80),
 			},
 		],
 	},
 	// tree: {
-	// 	models: [new Tree([10, 2, 0], [90, 0, 0])],
+	// 	models: [new Tree([2, -12.5, 0], [0, 0, 0])],
 	// 	hasBoundingBox: true,
 	// 	lights: [],
 	// },
@@ -72,8 +80,8 @@ export const objectList: IObjectList = {
 		lights: [
 			{
 				position: [-1, 0, 1],
-				brightness: 1.5,
-				color: [1.0, 0.0, 0.0],
+				brightness: 2,
+				color: [1.0, 1.0, 1.0],
 				type: 'spot',
 				direction: [-1.0, 0.0, 0],
 				limit: utils.degToRad(35),

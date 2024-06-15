@@ -138,7 +138,7 @@ export class Renderer {
 		this.context.configure({
 			device: this.device,
 			format: this.format,
-			alphaMode: 'opaque',
+			alphaMode: 'premultiplied',
 		});
 	}
 

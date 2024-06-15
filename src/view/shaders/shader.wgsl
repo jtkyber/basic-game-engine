@@ -40,7 +40,7 @@ const pi: f32 = 3.14159265359;
 const fogIntensity: f32 = 0.02;
 const fogColor = vec3f(0.0, 0.0, 0.0);
 const lightFalloff: f32 = 30.0;
-const lightRadialFalloff: f32 = 2;
+const lightRadialFalloff: f32 = 2.0;
 
 // Bound for each frame
 @group(0) @binding(0) var<uniform> transformUBO: TransformData;
@@ -98,14 +98,14 @@ fn f_main(input: VertOut) -> FragOut {
     // }
 
     let textureColor = textureSample(myTexture, mySampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), input.materialIndex);
-    // if (textureColor.a == 0.0) { discard; }
+    if (textureColor.a == 0.0) { discard; }
 
     let distFromPlayer = abs(distance(input.worldPos.xyz, cameraPosition));
 
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
 
     // Ambient
-    let ka = 0.12;
+    let ka = 0.1;
     let ambientLight = textureColor.rgb * input.materialAmbient * ka;
 
     var finalLight: vec3f = vec3f(0.0, 0.0, 0.0);
@@ -146,7 +146,7 @@ fn f_main(input: VertOut) -> FragOut {
 
         let surfaceToLightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
         let dotFromDir = dot(surfaceToLightDir, normalize(-lightDirectionValues[i]));
-        let lightLimit = 1 - lightLimitValues[i] / pi;
+        let lightLimit = 1 - (lightLimitValues[i] / 2) / pi;
         let percentAlongLightRadius = (1 - dotFromDir) / (1 - lightLimit);
         var spotLightFalloff = 1.0;
 
