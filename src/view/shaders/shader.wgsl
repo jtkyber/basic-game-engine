@@ -93,10 +93,12 @@ fn v_main(input: VertIn) -> VertOut {
 fn f_main(input: VertOut) -> FragOut {
     var output: FragOut;
 
+    // if (input.position.x < 0.0 || input.position.x > viewport.x || input.position.y < 0.0 || input.position.y > viewport.y) {
+    //     discard;
+    // }
+
     let textureColor = textureSample(myTexture, mySampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), input.materialIndex);
-    if (textureColor.a == 0.0) {
-        discard;
-    }
+    // if (textureColor.a == 0.0) { discard; }
 
     let distFromPlayer = abs(distance(input.worldPos.xyz, cameraPosition));
 
