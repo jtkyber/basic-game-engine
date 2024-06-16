@@ -28,7 +28,7 @@ export interface IObjectList {
 
 export const objectList: IObjectList = {
 	player: {
-		models: [new Player([-7, -9.5, 0], [0, 0, 0])],
+		models: [new Player([-7, -9.5, 10], [0, 0, 0])],
 		hasBoundingBox: true,
 		lights: [],
 	},
@@ -64,11 +64,11 @@ export const objectList: IObjectList = {
 		hasBoundingBox: false,
 		lights: [],
 	},
-	boundary: {
-		models: [new Floor([0, 0, 0], [0, 0, 0])],
-		hasBoundingBox: false,
-		lights: [],
-	},
+	// boundary: {
+	// 	models: [new Floor([0, 0, 0], [0, 0, 0])],
+	// 	hasBoundingBox: false,
+	// 	lights: [],
+	// },
 	// car: {
 	// 	models: [new Car([0, -10, 0], [0, 0, -90])],
 	// 	hasBoundingBox: false,

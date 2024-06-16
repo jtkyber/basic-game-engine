@@ -162,6 +162,8 @@ export function player_object_collision(
 			}
 		}
 
+		// if (performance.now() % 100 < 10) console.log(boxZTop, playerZBottom);
+
 		g_index += 24 * 3;
 	}
 

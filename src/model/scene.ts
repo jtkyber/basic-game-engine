@@ -67,6 +67,7 @@ export class Scene {
 	}
 
 	update() {
+		this.player.update();
 		this.camera.update();
 
 		if (this.camDistFromPlayer < 1) this.camDistFromPlayer = 1;
@@ -74,14 +75,6 @@ export class Scene {
 
 		const playerBoundingVerticesInitial: Float32Array = this.playerMesh.boundingBoxVerticesInitial;
 		const playerBoundingVerticesGrouped: Float32Array = this.playerMesh.boundingBoxVerticesGrouped;
-
-		this.player.apply_gravity();
-		this.player.update();
-
-		const playerTransform: Float32Array = new Float32Array(16);
-		for (let i = 0; i < 16; i++) {
-			playerTransform[i] = <number>this.player.get_model().at(i);
-		}
 
 		let i: number = 0;
 		let b_index: number = 0;
@@ -150,53 +143,59 @@ export class Scene {
 
 				i++;
 
-				if (object.hasBoundingBox && name !== 'player') {
-					const modelTransorm: Float32Array = this.boundingBoxData.slice(16 * b_index, 16 * b_index + 16);
-					const modelVerticesInitial: Float32Array = this.meshes[n].boundingBoxVerticesInitial;
-					const modelVerticesGrouped: Float32Array = this.meshes[n].boundingBoxVerticesGrouped;
+				if (object.hasBoundingBox) {
+					if (name !== 'player') {
+						const modelTransorm: Float32Array = this.boundingBoxData.slice(16 * b_index, 16 * b_index + 16);
+						const modelVerticesInitial: Float32Array = this.meshes[n].boundingBoxVerticesInitial;
+						const modelVerticesGrouped: Float32Array = this.meshes[n].boundingBoxVerticesGrouped;
 
-					const collisionData: ICollision[] | false = player_object_collision(
-						playerBoundingVerticesInitial,
-						playerBoundingVerticesGrouped,
-						playerTransform,
-						modelVerticesInitial,
-						modelVerticesGrouped,
-						modelTransorm
-					);
+						const collisionData: ICollision[] | false = player_object_collision(
+							playerBoundingVerticesInitial,
+							playerBoundingVerticesGrouped,
+							this.modelData,
+							modelVerticesInitial,
+							modelVerticesGrouped,
+							modelTransorm
+						);
 
-					if (collisionData) {
-						for (let k: number = 0; k < collisionData.length; k++) {
-							counter++;
-							if (
-								this.playerMoving &&
-								dot(this.moveDeltaVector, model.moveVector) >= 0 &&
-								dot(this.moveDeltaVector, collisionData[k].planeNormal) <= 0
-							) {
-								// If moving towards the plane and object not moving toward player
-								// Get vector offset along plane normal
-								const offsetVecCur: Vec3 = num_vec_multiply(
-									dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
-									collisionData[k].planeNormal
-								);
-								collisionCount++;
-								offsetVec = offsetVecCur;
-							} else if (this.playerMoving && dot(this.moveDeltaVector, model.moveVector) < 0) {
-								// If player moving and object moving towards player
-								const offsetVecCur: Vec3 = num_vec_multiply(
-									dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
-									collisionData[k].planeNormal
-								);
-								collisionCount++;
-								offsetVec = vecAdd(offsetVecCur, num_vec_multiply(-window.myLib.deltaTime, model.moveVector));
-							} else if (!this.playerMoving) {
-								// If player not moving and being pushed by object
-								collisionCount++;
-								offsetVec = num_vec_multiply(-window.myLib.deltaTime, model.moveVector);
+						if (collisionData) {
+							for (let k: number = 0; k < collisionData.length; k++) {
+								counter++;
+								if (
+									this.playerMoving &&
+									dot(this.moveDeltaVector, model.moveVector) >= 0 &&
+									dot(this.moveDeltaVector, collisionData[k].planeNormal) <= 0
+								) {
+									// If moving towards the plane and object not moving toward player
+									// Get vector offset along plane normal
+									const offsetVecCur: Vec3 = num_vec_multiply(
+										dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
+										collisionData[k].planeNormal
+									);
+									collisionCount++;
+									offsetVec = offsetVecCur;
+								} else if (this.playerMoving && dot(this.moveDeltaVector, model.moveVector) < 0) {
+									// If player moving and object moving towards player
+									const offsetVecCur: Vec3 = num_vec_multiply(
+										dot(this.moveDeltaVector, collisionData[k].planeNormal) / 1,
+										collisionData[k].planeNormal
+									);
+									collisionCount++;
+									offsetVec = vecAdd(
+										offsetVecCur,
+										num_vec_multiply(-window.myLib.deltaTime, model.moveVector)
+									);
+								} else if (!this.playerMoving) {
+									// If player not moving and being pushed by object
+									collisionCount++;
+									offsetVec = num_vec_multiply(-window.myLib.deltaTime, model.moveVector);
+								}
+								// Include playerBoxZdelta even if vector is facing away from plane
+								playerBoxZdeltas.push(collisionData[k].playerBoxZdelta);
 							}
-							// Include playerBoxZdelta even if vector is facing away from plane
-							playerBoxZdeltas.push(collisionData[k].playerBoxZdelta);
 						}
 					}
+
 					b_index++;
 				}
 			}
@@ -204,7 +203,7 @@ export class Scene {
 
 		// Find max playerBoxZdelta from collisions that's within range
 		let maxStepUpHeight: number = 0;
-		const stepHeight: number = 0.25;
+		const stepHeight: number = 0.3;
 		for (let j: number = 0; j < playerBoxZdeltas.length; j++) {
 			if (playerBoxZdeltas[j] > maxStepUpHeight && playerBoxZdeltas[j] < stepHeight) {
 				maxStepUpHeight = playerBoxZdeltas[j];
@@ -237,6 +236,7 @@ export class Scene {
 		}
 
 		this.spin_player(0, 0);
+		this.player.apply_gravity();
 		this.player.update();
 		this.camera.update();
 	}

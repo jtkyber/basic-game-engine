@@ -30,5 +30,5 @@ fn v_main(input: VertIn) -> VertOut {
 
 @fragment
 fn f_main(input: VertOut) -> @location(0) vec4f {
-    return vec4f(0.0, 1.0, 1.0, 0.1);
+    return vec4f(0.0, 1.0, 1.0, 1.0);
 }

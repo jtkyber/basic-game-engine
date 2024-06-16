@@ -1,4 +1,5 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
+import { Model } from '../model/model';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';
@@ -108,7 +109,7 @@ export class App {
 				this.scene.playerMoving = true;
 				this.scene.player.set_rotation(
 					Math.atan2(moveDeltaVector[1], moveDeltaVector[0]) * (180 / Math.PI),
-					1
+					2
 				);
 			}
 		}

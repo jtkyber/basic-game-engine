@@ -16,6 +16,6 @@ export class Player extends Model {
 	update() {
 		this.model = mat4.create();
 		mat4.translation(this.position, this.model);
-		mat4.rotateZ(this.model, degToRad(this.eulers[1]), this.model);
+		mat4.rotateZ(this.model, degToRad(this.eulers[2]), this.model);
 	}
 }

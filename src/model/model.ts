@@ -1,4 +1,4 @@
-import { Mat4, Vec3 } from 'wgpu-matrix';
+import { Mat4, Vec3, mat4 } from 'wgpu-matrix';
 
 export class Model {
 	position: Vec3;
