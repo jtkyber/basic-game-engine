@@ -361,7 +361,11 @@ export class ObjMesh {
 		res.push(vt[0]);
 		res.push(vt[1]);
 
-		res.push(Number(this.materialIndeces[this.currentMaterial]) || 0);
+		res.push(
+			Number(this.materialIndeces[this.currentMaterial]) >= 0
+				? Number(this.materialIndeces[this.currentMaterial])
+				: -1
+		);
 
 		res.push(vn[0]);
 		res.push(vn[1]);

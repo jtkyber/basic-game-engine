@@ -21,6 +21,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 1
+map_Kd ./dist/img/player/player.jpg
 
 newmtl cloth
 Ns 8.000002
@@ -42,6 +43,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
+map_Kd ./dist/img/player/player.jpg
 
 newmtl headlights
 Ns 250.000002
@@ -63,6 +65,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
+map_Kd ./dist/img/player/player.jpg
 
 newmtl vacuum
 Ns 8.000002

@@ -23,7 +23,7 @@ struct VertOut {
     @builtin(position) position: vec4f,
     @location(0) TextCoord: vec2f,
     @location(1) worldPos: vec4f,
-    @location(2) @interpolate(flat) materialIndex: u32,
+    @location(2) @interpolate(flat) materialIndex: i32,
     @location(3) @interpolate(flat) vertexNormal: vec3f,
     @location(4) @interpolate(flat) materialShininess: f32,
     @location(5) @interpolate(flat) materialSpecular: vec3f,
@@ -80,7 +80,7 @@ fn v_main(input: VertIn) -> VertOut {
     output.TextCoord = input.vertexTexCoord;
     output.worldPos = vertWorldPos; 
     output.vertexNormal = extractMat3FromMat4(normalMatrices[input.instanceIndex]) * input.vertexNormal;
-    output.materialIndex = u32(input.materialIndex);
+    output.materialIndex = i32(input.materialIndex);
     output.materialShininess = input.materialShininess;
     output.materialSpecular = input.materialSpecular;
     output.materialAmbient = input.materialAmbient;
@@ -93,8 +93,9 @@ fn v_main(input: VertIn) -> VertOut {
 fn f_main(input: VertOut) -> FragOut {
     var output: FragOut;
 
-    let textureColor = textureSample(myTexture, mySampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), input.materialIndex);
-    if (textureColor.a == 0.0) { discard; }
+    let hasTexture: bool = input.materialIndex >= 0;
+
+    let textureColor = textureSample(myTexture, mySampler, vec2f(input.TextCoord.x, 1 - input.TextCoord.y), abs(input.materialIndex));
     // output.color = textureColor;
 
     let distFromPlayer = abs(distance(input.worldPos.xyz, cameraPosition));
@@ -103,7 +104,11 @@ fn f_main(input: VertOut) -> FragOut {
 
     // Ambient
     let ka = 0.1;
-    let ambientLight = textureColor.rgb * input.materialAmbient * ka;
+    var ambientLight: vec3f = input.materialAmbient * ka;
+    if (hasTexture) {
+        if (textureColor.a == 0.0) { discard; }
+        ambientLight *= textureColor.rgb;
+    }
 
     var finalLight: vec3f = vec3f(0.0, 0.0, 0.0);
 
@@ -163,7 +168,7 @@ fn f_main(input: VertOut) -> FragOut {
        
         // Diffuse
         var diffuseColor = input.materialDiffuse * lightColorValues[i];
-        if (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0) {
+        if (hasTexture && (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0)) {
             diffuseColor = textureColor.rgb * lightColorValues[i];
         }
         
@@ -176,11 +181,6 @@ fn f_main(input: VertOut) -> FragOut {
         let specularLight = specularAmt * input.materialSpecular * diffuseColor;
 
         finalLight += diffuseLight + specularLight;
-
-        // Temporary light bulb effect
-        if (lightDist < 0.1) {
-            finalLight = (lightColorValues[i] * lightBrightnessValues[i]) * (0.11 - lightDist) * 10.0;
-        }
     }
 
     let finalWithFog = mix(finalLight + ambientLight, fogColor, fogScaler);
