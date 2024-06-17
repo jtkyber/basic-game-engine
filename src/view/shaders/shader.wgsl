@@ -132,7 +132,7 @@ fn f_main(input: VertOut) -> FragOut {
 
                 visibility += textureSampleCompare(
                     shadowDepthTexture, shadowDepthSampler,
-                    shadowPos.xy + offset, i, shadowPos.z - 0.0000
+                    shadowPos.xy + offset, i, shadowPos.z - 0.0003
                 );
             }
         }
@@ -176,6 +176,11 @@ fn f_main(input: VertOut) -> FragOut {
         let specularLight = specularAmt * input.materialSpecular * diffuseColor;
 
         finalLight += diffuseLight + specularLight;
+
+        // Temporary light bulb effect
+        if (lightDist < 0.1) {
+            finalLight = (lightColorValues[i] * lightBrightnessValues[i]) * (0.11 - lightDist) * 10.0;
+        }
     }
 
     let finalWithFog = mix(finalLight + ambientLight, fogColor, fogScaler);

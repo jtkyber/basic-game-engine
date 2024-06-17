@@ -3,12 +3,16 @@ struct TransformData {
     projection: mat4x4f,
 };
 
+struct VertIn {
+    @builtin(vertex_index) v_id: u32,
+    @builtin(instance_index) i_id: u32
+}
+
 @group(0) @binding(0) var<storage, read> inverseLightViewProjectionMat: array<mat4x4f>;
 @group(0) @binding(1) var<uniform> transformUBO: TransformData;
 
 @vertex
-fn v_main(@builtin(vertex_index) id: u32) -> @builtin(position) vec4f {
-
+fn v_main(in: VertIn) -> @builtin(position) vec4f {
      let vertices = array<vec3f, 8> (
         vec3f(-1, 1, 0),
         vec3f(-1, 1, 1),
@@ -23,22 +27,7 @@ fn v_main(@builtin(vertex_index) id: u32) -> @builtin(position) vec4f {
         vec3f(1, -1, 1),
     );
 
-    //  let vertices = array<vec3f, 36> (
-    //     vec3f(-1, 1, 1), vec3f(-1, 1, 0), vec3f(1, 1, 0), 
-    //     vec3f(-1, 1, 1), vec3f(1, 1, 0), vec3f(1, 1, 1), 
-    //     vec3f(1, -1, 1), vec3f(1, 1, 1), vec3f(1, 1, 0), 
-    //     vec3f(1, -1, 1), vec3f(1, 1, 0), vec3f(1, -1, 0), 
-    //     vec3f(1, -1, 0), vec3f(1, 1, 0), vec3f(-1, 1, 0), 
-    //     vec3f(1, -1, 0), vec3f(-1, 1, 0), vec3f(-1, -1, 0), 
-    //     vec3f(-1, -1, 0), vec3f(-1, -1, 1), vec3f(1, -1, 1), 
-    //     vec3f(-1, -1, 0), vec3f(1, -1, 1), vec3f(1, -1, 0), 
-    //     vec3f(-1, -1, 1), vec3f(-1, 1, 1), vec3f(1, 1, 1), 
-    //     vec3f(-1, -1, 1), vec3f(1, 1, 1), vec3f(1, -1, 1), 
-    //     vec3f(-1, -1, 0), vec3f(-1, 1, 0), vec3f(-1, 1, 1), 
-    //     vec3f(-1, -1, 0), vec3f(-1, 1, 1), vec3f(-1, -1, 1)
-    // );
-
-    var worldPos = inverseLightViewProjectionMat[0] * vec4f(vertices[id], 1.0);
+    var worldPos = inverseLightViewProjectionMat[in.i_id] * vec4f(vertices[in.v_id], 1.0);
     worldPos /= worldPos.w;
     let pos = transformUBO.projection * transformUBO.view * worldPos;
 

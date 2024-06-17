@@ -851,31 +851,33 @@ export class Renderer {
 
 		this.writeFrameBuffers(renderables, cameraPosition, projection, view);
 
-		// Shadow Pass -------------------------------------------
+		if (!this.collisionDebug) {
+			// Shadow Pass -------------------------------------------
 
-		for (let i: number = 0; i < lightCount; i++) {
-			this.shadowPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
-				colorAttachments: [],
-				depthStencilAttachment: {
-					view: this.shadow.depthTextureViewArray[i],
-					depthClearValue: 0.0,
-					depthLoadOp: 'clear',
-					depthStoreOp: 'store',
-				},
-			});
+			for (let i: number = 0; i < lightCount; i++) {
+				this.shadowPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
+					colorAttachments: [],
+					depthStencilAttachment: {
+						view: this.shadow.depthTextureViewArray[i],
+						depthClearValue: 0.0,
+						depthLoadOp: 'clear',
+						depthStoreOp: 'store',
+					},
+				});
 
-			this.shadowPass.setPipeline(this.shadow.pipeline);
-			this.shadowPass.setBindGroup(0, this.shadow.bindGroup);
+				this.shadowPass.setPipeline(this.shadow.pipeline);
+				this.shadowPass.setBindGroup(0, this.shadow.bindGroup);
 
-			for (let j: number = 0; j < objectCount; j++) {
-				this.shadowPass.setVertexBuffer(0, this.objectMeshes[j].positionBuffer);
-				this.shadowPass.draw(this.objectMeshes[j].vertexCount, 1, 0, (i << 16) | j);
+				for (let j: number = 0; j < objectCount; j++) {
+					this.shadowPass.setVertexBuffer(0, this.objectMeshes[j].positionBuffer);
+					this.shadowPass.draw(this.objectMeshes[j].vertexCount, 1, 0, (i << 16) | j);
+				}
+
+				this.shadowPass.end();
 			}
 
-			this.shadowPass.end();
+			// -------------------------------------------------------
 		}
-
-		// -------------------------------------------------------
 
 		this.renderPass = <GPURenderPassEncoder>this.encoder.beginRenderPass({
 			colorAttachments: [
