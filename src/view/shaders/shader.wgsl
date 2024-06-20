@@ -186,7 +186,7 @@ fn f_main(input: VertOut) -> FragOut {
     let finalWithFog = mix(finalLight + ambientLight, fogColor, fogScaler);
     // let finalWithAmbient = finalLight + ambientLight;
 
-    output.color = vec4f(finalWithFog, textureColor.a);
+    output.color = vec4f(finalWithFog, 1.0);
     
     return output;
 }
