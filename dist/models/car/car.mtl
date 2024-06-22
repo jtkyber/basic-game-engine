@@ -8,6 +8,7 @@ Ks 1 1 1
 map_Ks ./dist/img/car/formula1_DefaultMaterial_Specular.png
 Ns 240
 illum 7
+d 1.0
 
 newmtl Mirrors
 Ka 1 1 1
@@ -15,6 +16,7 @@ Kd 1 1 1
 Ks 1 1 1
 Ns 100
 illum 7
+d 1.0
 
 newmtl Fillers
 Ka 1 1 1
@@ -22,6 +24,7 @@ Ks 1 1 1
 Kd 0 0 0
 Ns 0
 illum 7
+d 1.0
 
 newmtl Panel Emission
 Ka 3.79999995231628 3.94785928726196 4
@@ -29,6 +32,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Light Source Emission
 Ka 3.79999995231628 3.94785928726196 4
@@ -36,6 +40,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl LED Light Ring Emission
 Ka 3.79999995231628 3.94785928726196 4
@@ -43,6 +48,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Kino Bulb Emission
 Ka 3.79999995231628 3.94785928726196 4
@@ -50,6 +56,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl White Fabric Emission
 Ka 3.79999995231628 3.94785928726196 4
@@ -57,6 +64,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Softbox Emission
 Ka 3.79999995231628 3.94785928726196 4
@@ -64,6 +72,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Panel Emission
 Ka 5.46000003814697 6 6
@@ -71,6 +80,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Light Source Emission
 Ka 5.46000003814697 6 6
@@ -78,6 +88,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl LED Light Ring Emission
 Ka 5.46000003814697 6 6
@@ -85,6 +96,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Kino Bulb Emission
 Ka 5.46000003814697 6 6
@@ -92,6 +104,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl White Fabric Emission
 Ka 5.46000003814697 6 6
@@ -99,6 +112,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Softbox Emission
 Ka 5.46000003814697 6 6
@@ -106,6 +120,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Panel Emission
 Ka 1.89999997615814 1.97392964363098 2
@@ -113,6 +128,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Light Source Emission
 Ka 1.89999997615814 1.97392964363098 2
@@ -120,6 +136,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl LED Light Ring Emission
 Ka 1.89999997615814 1.97392964363098 2
@@ -127,6 +144,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Kino Bulb Emission
 Ka 1.89999997615814 1.97392964363098 2
@@ -134,6 +152,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl White Fabric Emission
 Ka 1.89999997615814 1.97392964363098 2
@@ -141,6 +160,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Softbox Emission
 Ka 1.89999997615814 1.97392964363098 2
@@ -148,6 +168,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl White Plastic
 Ka 1 1 1
@@ -155,6 +176,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Softbox Edge
 Ka 1 1 1
@@ -162,6 +184,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Reflective Umbrella
 Ka 1 1 1
@@ -169,6 +192,7 @@ Ks 1 1 1
 Kd 0.80000001192093 0.80000001192093 0.80000001192093
 Ns 0
 illum 7
+d 1.0
 
 newmtl Dull Black Plastic
 Ka 1 1 1
@@ -176,6 +200,7 @@ Ks 1 1 1
 Kd 0.20000000298023 0.20000000298023 0.20000000298023
 Ns 0
 illum 7
+d 1.0
 
 newmtl Dark Metal
 Ka 1 1 1
@@ -183,6 +208,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Black Painted Metal
 Ka 1 1 1
@@ -190,6 +216,7 @@ Ks 1 1 1
 Kd 1 1 1
 Ns 0
 illum 7
+d 1.0
 
 newmtl Black Fabric
 Ka 1 1 1
@@ -197,3 +224,4 @@ Ks 1 1 1
 Kd 0.15000000596046 0.15000000596046 0.15000000596046
 Ns 0
 illum 7
+d 1.0

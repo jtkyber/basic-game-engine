@@ -5,6 +5,7 @@ import { House } from './model/house';
 import { Model } from './model/model';
 import { Player } from './model/player';
 import { Sphere } from './model/sphere';
+import { Sun } from './model/sun';
 import { Tree } from './model/tree';
 
 export interface ILight {
@@ -36,22 +37,22 @@ export const objectList: IObjectList = {
 		models: [new House([14, -10, 0], [0, 0, 0])],
 		hasBoundingBox: true,
 		lights: [
-			{
-				position: [-4.936149, 0.6, 3.513694],
-				brightness: 2.5,
-				color: [1.0, 0.95, 0.93],
-				type: 'spot',
-				direction: [-1.0, 0.5, -0.4],
-				limit: utils.degToRad(80),
-			},
-			{
-				position: [-4.936149, 0.8, 3.513694],
-				brightness: 2.5,
-				color: [1.0, 0.95, 0.93],
-				type: 'spot',
-				direction: [-1.0, -0.5, -0.4],
-				limit: utils.degToRad(80),
-			},
+			// {
+			// 	position: [-4.936149, 0.6, 3.513694],
+			// 	brightness: 2.5,
+			// 	color: [1.0, 0.95, 0.93],
+			// 	type: 'spot',
+			// 	direction: [-1.0, 0.5, -0.4],
+			// 	limit: utils.degToRad(80),
+			// },
+			// {
+			// 	position: [-4.936149, 0.8, 3.513694],
+			// 	brightness: 2.5,
+			// 	color: [1.0, 0.95, 0.93],
+			// 	type: 'spot',
+			// 	direction: [-1.0, -0.5, -0.4],
+			// 	limit: utils.degToRad(80),
+			// },
 		],
 	},
 	// tree: {
@@ -78,13 +79,25 @@ export const objectList: IObjectList = {
 		models: [new Sphere([0, -14, 0], [0, 0, 0])],
 		hasBoundingBox: false,
 		lights: [
+			// {
+			// 	position: [-1, 0, 1],
+			// 	brightness: 2.0,
+			// 	color: [1.3, 0.3, 0.3],
+			// 	type: 'spot',
+			// 	direction: [-1.0, 0.0, 0],
+			// 	limit: utils.degToRad(35),
+			// },
+		],
+	},
+	sun: {
+		models: [new Sun([10.0, 0.0, 20], [0, 0, 0])],
+		hasBoundingBox: false,
+		lights: [
 			{
-				position: [-1, 0, 1],
-				brightness: 2.0,
-				color: [1.3, 0.3, 0.3],
-				type: 'spot',
-				direction: [-1.0, 0.0, 0],
-				limit: utils.degToRad(35),
+				position: [0.0, 0.0, -1.5],
+				brightness: 1,
+				color: [1.0, 0.95, 0.93],
+				type: 'directional',
 			},
 		],
 	},

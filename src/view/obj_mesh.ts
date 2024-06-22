@@ -33,7 +33,7 @@ export class ObjMesh {
 	materialShininess: {
 		[id: string]: number;
 	};
-	materialSpecualar: {
+	materialSpecular: {
 		[id: string]: Vec3;
 	};
 	materialAmbient: {
@@ -41,6 +41,9 @@ export class ObjMesh {
 	};
 	materialDiffuse: {
 		[id: string]: Vec3;
+	};
+	materialDissolve: {
+		[id: string]: number;
 	};
 	materialIndeces: {
 		[id: string]: number;
@@ -54,9 +57,10 @@ export class ObjMesh {
 		this.vtCount = 0;
 		this.vnCount = 0;
 		this.materialFilenames = {};
-		this.materialSpecualar = {};
+		this.materialSpecular = {};
 		this.materialAmbient = {};
 		this.materialDiffuse = {};
+		this.materialDissolve = {};
 		this.materialShininess = {};
 		this.materialIndeces = {};
 	}
@@ -134,7 +138,7 @@ export class ObjMesh {
 		// prettier-ignore
 		await this.read_mtl_file(url)
 		await this.read_obj_file(url);
-		const floatsPerVertex = 19;
+		const floatsPerVertex = 20;
 		this.vertexCount = this.vertices.length / floatsPerVertex;
 
 		this.buffer = this.device.createBuffer({
@@ -167,7 +171,7 @@ export class ObjMesh {
 		this.positionBuffer.unmap();
 
 		this.bufferLayout = {
-			arrayStride: 76,
+			arrayStride: 80,
 			attributes: [
 				// For the position
 				{
@@ -217,6 +221,12 @@ export class ObjMesh {
 					format: 'float32x3',
 					offset: 64,
 				},
+				// For Dissolve (d)
+				{
+					shaderLocation: 8,
+					format: 'float32',
+					offset: 76,
+				},
 			],
 		};
 	}
@@ -242,11 +252,13 @@ export class ObjMesh {
 			} else if (words[0] === 'Ka') {
 				this.materialAmbient[this.currentMaterial] = [Number(words[1]), Number(words[2]), Number(words[3])];
 			} else if (words[0] === 'Ks') {
-				this.materialSpecualar[this.currentMaterial] = [Number(words[1]), Number(words[2]), Number(words[3])];
+				this.materialSpecular[this.currentMaterial] = [Number(words[1]), Number(words[2]), Number(words[3])];
 			} else if (words[0] === 'Ns') {
 				this.materialShininess[this.currentMaterial] = Number(words[1]);
 			} else if (words[0] === 'Kd') {
 				this.materialDiffuse[this.currentMaterial] = [Number(words[1]), Number(words[2]), Number(words[3])];
+			} else if (words[0] === 'd') {
+				this.materialDissolve[this.currentMaterial] = Number(words[1]);
 			}
 		});
 	}
@@ -372,9 +384,10 @@ export class ObjMesh {
 		res.push(vn[2]);
 
 		res.push(this.materialShininess[this.currentMaterial]);
-		res.push(...this.materialSpecualar[this.currentMaterial]);
+		res.push(...this.materialSpecular[this.currentMaterial]);
 		res.push(...this.materialAmbient[this.currentMaterial]);
 		res.push(...this.materialDiffuse[this.currentMaterial]);
+		res.push(this.materialDissolve[this.currentMaterial]);
 	}
 
 	read_vertex_line_b(line: string) {

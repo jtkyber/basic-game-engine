@@ -85,6 +85,7 @@ export class App {
 
 			this.scene.update();
 			this.renderer.render(
+				this.scene.get_sorted_object_indices(),
 				this.scene.get_renderables(),
 				this.scene.camera.get_position(),
 				this.scene.camera.forwards,

@@ -29,8 +29,11 @@ export class Scene {
 	meshes: ObjMesh[];
 	playerMesh: ObjMesh;
 	lightMesh: LightMesh;
-	lightOrthoParams: any;
-
+	objectPositions: {
+		pos: Vec3;
+		index: number;
+		name: string;
+	}[];
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
 		this.lightData = new Float32Array(16 * lightCount);
@@ -50,14 +53,7 @@ export class Scene {
 			0,
 			0
 		);
-		this.lightOrthoParams = {
-			left: -80,
-			right: 80,
-			bottom: -80,
-			top: 80,
-			near: -200,
-			far: 300,
-		};
+		this.objectPositions = [];
 	}
 
 	set_meshes(meshes: ObjMesh[], playerMesh: ObjMesh, lightMesh: LightMesh) {
@@ -66,7 +62,19 @@ export class Scene {
 		this.lightMesh = lightMesh;
 	}
 
+	get_sorted_object_indices(): number[] {
+		this.objectPositions.sort((a, b) => {
+			if (vec3.distance(a.pos, this.camera.position) > vec3.distance(b.pos, this.camera.position)) {
+				return 1;
+			}
+			return -1;
+		});
+		return this.objectPositions.map(obj => obj.index);
+	}
+
 	update() {
+		this.objectPositions = [];
+
 		this.player.update();
 		this.camera.update();
 
@@ -90,7 +98,12 @@ export class Scene {
 
 			for (let oIndex: number = 0; oIndex < object.models.length; oIndex++) {
 				const model: Model = object.models[oIndex];
+				if (name === 'sun') {
+					model.position = vec3.add(model.untransformedPosition, this.camera.position);
+				}
+
 				model.update();
+				this.objectPositions.push({ pos: model.position, index: i, name: name + oIndex });
 				let modelMatrix: Mat4 = model.get_model();
 
 				for (let j: number = 0; j < 16; j++) {
@@ -125,9 +138,15 @@ export class Scene {
 					const lightTarget: Vec3 = vec3.add(translatedPos, rotated);
 					// const lightTarget: Vec3 = vec3.add(translatedPos, light.direction || [0.0, 0.0, 0.0]);
 
-					const lightViewMatrix: Mat4 = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
-
-					const lightProjectionMatrix: Mat4 = mat4.perspectiveReverseZ(light.limit || 1.0, 1.0, 0.1, 100);
+					let lightViewMatrix: Mat4;
+					let lightProjectionMatrix: Mat4;
+					if (light.type === 'directional') {
+						lightProjectionMatrix = mat4.ortho(-20.0, 20.0, -20.0, 20.0, -40, 80);
+						lightViewMatrix = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
+					} else {
+						lightProjectionMatrix = mat4.perspectiveReverseZ(light.limit || 1.0, 1.0, 0.1, 100);
+						lightViewMatrix = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
+					}
 
 					const lightViewProjectionMatrixTemp: Mat4 = mat4.multiply(lightProjectionMatrix, lightViewMatrix);
 

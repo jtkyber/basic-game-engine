@@ -16,6 +16,7 @@ struct VertIn {
     @location(5) materialSpecular: vec3f,
     @location(6) materialAmbient: vec3f,
     @location(7) materialDiffuse: vec3f,
+    @location(8) materialDissolve: f32,
     @builtin(instance_index) instanceIndex: u32,
 };
 
@@ -29,6 +30,7 @@ struct VertOut {
     @location(5) @interpolate(flat) materialSpecular: vec3f,
     @location(6) @interpolate(flat) materialAmbient: vec3f,
     @location(7) @interpolate(flat) materialDiffuse: vec3f,
+    @location(8) @interpolate(flat) materialDissolve: f32,
 };
 
 struct FragOut {
@@ -37,7 +39,7 @@ struct FragOut {
 
 const pi: f32 = 3.14159265359;
 
-const fogIntensity: f32 = 0.015;
+const fogIntensity: f32 = 0.0;
 const fogColor = vec3f(0.0, 0.0, 0.0);
 const lightFalloff: f32 = 30.0;
 const lightRadialFalloff: f32 = 2.0;
@@ -85,6 +87,7 @@ fn v_main(input: VertIn) -> VertOut {
     output.materialSpecular = input.materialSpecular;
     output.materialAmbient = input.materialAmbient;
     output.materialDiffuse = input.materialDiffuse;
+    output.materialDissolve = input.materialDissolve;
 
     return output;
 }
@@ -103,7 +106,8 @@ fn f_main(input: VertOut) -> FragOut {
     let fogScaler = 1 - clamp(1 / exp(pow((distFromPlayer * fogIntensity), 2)), 0, 1);
 
     // Ambient
-    let ka = 0.1;
+    // let ka = 0.1;
+    let ka = 0.25;
     var ambientLight: vec3f = input.materialAmbient * ka;
     if (hasTexture) {
         if (textureColor.a == 0.0) { discard; }
@@ -146,13 +150,16 @@ fn f_main(input: VertOut) -> FragOut {
 
         // --------------------------
 
-        let surfaceToLightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
-        let dotFromDir = dot(surfaceToLightDir, normalize(-lightDirectionValues[i]));
-        let lightLimit = 1 - (lightLimitValues[i] / 2) / pi;
-        let percentAlongLightRadius = (1 - dotFromDir) / (1 - lightLimit);
+        var surfaceToLightDir = normalize(lightWorldPositions[i] - cameraPosition);
         var spotLightFalloff = 1.0;
+        var lightIntensityAdjustment = visibility * lightBrightnessValues[i];
 
         if (lightTypeValues[i] == 0) {        // If spot light
+            surfaceToLightDir = normalize(lightWorldPositions[i] - input.worldPos.xyz);
+            let dotFromDir = dot(surfaceToLightDir, normalize(-lightDirectionValues[i]));
+            let lightLimit = 1 - (lightLimitValues[i] / 2) / pi;
+            let percentAlongLightRadius = (1 - dotFromDir) / (1 - lightLimit);
+
             if (dotFromDir <= lightLimit) {
                 // i++;
                 // continue;
@@ -160,12 +167,12 @@ fn f_main(input: VertOut) -> FragOut {
             } else {
                 spotLightFalloff = pow(1 - percentAlongLightRadius, lightRadialFalloff);
             }
+
+            lightIntensityAdjustment *= spotLightFalloff * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
         }
 
         let faceDirToCamera = normalize(input.worldPos.xyz - cameraPosition);
 
-        let lightIntensityAdjustment = visibility * spotLightFalloff * lightBrightnessValues[i] * (pow(1 - s * s, 2) / (1 + lightFalloff * (s * s)));
-       
         // Diffuse
         var diffuseColor = input.materialDiffuse * lightColorValues[i];
         if (hasTexture && (textureColor.r != 0 || textureColor.g != 0 || textureColor.b != 0)) {
@@ -186,7 +193,10 @@ fn f_main(input: VertOut) -> FragOut {
     let finalWithFog = mix(finalLight + ambientLight, fogColor, fogScaler);
     // let finalWithAmbient = finalLight + ambientLight;
 
-    output.color = vec4f(finalWithFog, 1.0);
+    var transparency = input.materialDissolve;
+    if (hasTexture) { transparency = textureColor.a; }
+
+    output.color = vec4f(finalWithFog, transparency);
     
     return output;
 }

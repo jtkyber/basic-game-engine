@@ -2,6 +2,7 @@ import { Mat4, Vec3, mat4 } from 'wgpu-matrix';
 
 export class Model {
 	position: Vec3;
+	untransformedPosition: Vec3;
 	eulers: Vec3;
 	model: Mat4;
 	gravitySpd: number;
@@ -11,6 +12,7 @@ export class Model {
 
 	constructor(position: Vec3, eulers: Vec3) {
 		this.position = position;
+		this.untransformedPosition = position;
 		// Angle of rotation on each axis (I think)
 		this.eulers = eulers;
 		this.gravitySpd = 0.01;

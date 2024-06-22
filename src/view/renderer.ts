@@ -648,6 +648,18 @@ export class Renderer {
 				targets: [
 					{
 						format: this.format,
+						blend: {
+							color: {
+								operation: 'add',
+								srcFactor: 'src-alpha',
+								dstFactor: 'one-minus-src-alpha',
+							},
+							alpha: {
+								operation: 'add',
+								srcFactor: 'src-alpha',
+								dstFactor: 'one-minus-src-alpha',
+							},
+						},
 					},
 				],
 			},
@@ -812,6 +824,7 @@ export class Renderer {
 	}
 
 	render = async (
+		objectIndices: number[],
 		renderables: RenderData,
 		cameraPosition: Vec3,
 		camForwards: Vec3,
@@ -901,9 +914,10 @@ export class Renderer {
 		let objectsDrawn = 0;
 
 		for (let i: number = 0; i < objectCount; i++) {
-			this.renderPass.setVertexBuffer(0, this.objectMeshes[i].buffer);
-			this.renderPass.setBindGroup(1, this.objectMaterials[i].bindGroup);
-			this.renderPass.draw(this.objectMeshes[i].vertexCount, 1, 0, objectsDrawn);
+			const index: number = objectIndices[i];
+			this.renderPass.setVertexBuffer(0, this.objectMeshes[index].buffer);
+			this.renderPass.setBindGroup(1, this.objectMaterials[index].bindGroup);
+			this.renderPass.draw(this.objectMeshes[index].vertexCount, 1, 0, objectIndices[objectsDrawn]);
 
 			objectsDrawn++;
 		}

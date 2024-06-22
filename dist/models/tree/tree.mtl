@@ -30,6 +30,7 @@ Kd 0.000000 0.000000 0.000000
 Ks 0.300000 0.300000 0.300000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
+d 1.0
 illum 1
 map_Kd ./dist/img/tree/Maple_AE3D_03272021-A2-50pc.png
 map_d ./dist/img/tree/Maple_AE3D_03272021-A2-50pc.png
