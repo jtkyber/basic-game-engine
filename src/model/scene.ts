@@ -135,15 +135,17 @@ export class Scene {
 						new Float32Array(modelMatrix)
 					);
 					// Create light-view-projection matrix
-					const lightTarget: Vec3 = vec3.add(translatedPos, rotated);
+					let lightTarget: Vec3;
 					// const lightTarget: Vec3 = vec3.add(translatedPos, light.direction || [0.0, 0.0, 0.0]);
 
 					let lightViewMatrix: Mat4;
 					let lightProjectionMatrix: Mat4;
 					if (light.type === 'directional') {
+						lightTarget = vec3.addScaled(translatedPos, this.camera.position, -1);
 						lightProjectionMatrix = mat4.ortho(-20.0, 20.0, -20.0, 20.0, -40, 80);
 						lightViewMatrix = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
 					} else {
+						lightTarget = vec3.add(translatedPos, rotated);
 						lightProjectionMatrix = mat4.perspectiveReverseZ(light.limit || 1.0, 1.0, 0.1, 100);
 						lightViewMatrix = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
 					}
