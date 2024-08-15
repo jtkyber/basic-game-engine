@@ -1,10 +1,3 @@
-#fps_counter {
-	color: white;
-	position: absolute;
-	margin: 0.5rem 1rem;
-	font-size: larger;
-}
-
 body {
 	margin: 0;
 	background-color: rgb(67, 67, 67);
@@ -14,15 +7,23 @@ body {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-}
 
-.container {
-	aspect-ratio: 16/9;
-	height: 100%;
-}
+	.container {
+		aspect-ratio: 16/9;
+		max-height: 100%;
+		max-width: 100%;
 
-#canvas {
-	aspect-ratio: 16/9;
-	width: 100%;
-	height: 100%;
+		#fps_counter {
+			color: white;
+			position: absolute;
+			margin: 0.5rem 1rem;
+			font-size: larger;
+		}
+
+		#canvas {
+			aspect-ratio: 16/9;
+			width: 100%;
+			height: 100%;
+		}
+	}
 }

@@ -151,6 +151,7 @@ fn f_main(input: VertOut) -> FragOut {
         // --------------------------
 
         var surfaceToLightDir = normalize(lightWorldPositions[i] - cameraPosition);
+        // var surfaceToLightDir = -normalize(lightWorldPositions[i]);
         var spotLightFalloff = 1.0;
         var lightIntensityAdjustment = visibility * lightBrightnessValues[i];
 

@@ -21,6 +21,7 @@ export interface IObject {
 	models: Model[];
 	hasBoundingBox: boolean;
 	lights: ILight[];
+	isProcedural: boolean;
 }
 
 export interface IObjectList {
@@ -32,6 +33,7 @@ export const objectList: IObjectList = {
 		models: [new Player([-7, -9.5, 10], [0, 0, 0])],
 		hasBoundingBox: true,
 		lights: [],
+		isProcedural: false,
 	},
 	house: {
 		models: [new House([14, -10, 0], [0, 0, 0])],
@@ -54,6 +56,7 @@ export const objectList: IObjectList = {
 			// 	limit: utils.degToRad(80),
 			// },
 		],
+		isProcedural: false,
 	},
 	// tree: {
 	// 	models: [new Tree([2, -12.5, 0], [0, 0, 0])],
@@ -64,6 +67,7 @@ export const objectList: IObjectList = {
 		models: [new Floor([0, 0, 0], [0, 0, 0])],
 		hasBoundingBox: false,
 		lights: [],
+		isProcedural: false,
 	},
 	// boundary: {
 	// 	models: [new Floor([0, 0, 0], [0, 0, 0])],
@@ -88,6 +92,7 @@ export const objectList: IObjectList = {
 			// 	limit: utils.degToRad(35),
 			// },
 		],
+		isProcedural: false,
 	},
 	sun: {
 		models: [new Sun([10.0, 0.0, 20], [0, 0, 0])],
@@ -100,6 +105,7 @@ export const objectList: IObjectList = {
 				type: 'directional',
 			},
 		],
+		isProcedural: true,
 	},
 };
 

@@ -1,4 +1,4 @@
-import { Mat4, Vec3, mat4 } from 'wgpu-matrix';
+import { Mat4, Vec3 } from 'wgpu-matrix';
 
 export class Model {
 	position: Vec3;
@@ -9,6 +9,7 @@ export class Model {
 	gravityInc: number;
 	gravityAcc: number;
 	moveVector: Vec3;
+	moveSpeed: number;
 
 	constructor(position: Vec3, eulers: Vec3) {
 		this.position = position;

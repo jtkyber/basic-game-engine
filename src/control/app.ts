@@ -1,5 +1,4 @@
 import { Vec2, Vec3 } from 'wgpu-matrix';
-import { Model } from '../model/model';
 import { Scene } from '../model/scene';
 import { vecA_minus_vecB } from '../utils/math_stuff';
 import { ObjMesh } from '../view/obj_mesh';

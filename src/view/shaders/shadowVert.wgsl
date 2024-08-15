@@ -10,6 +10,6 @@ struct Input {
 fn vs_main(in: Input) -> @builtin(position) vec4f {
     let obj_id = in.idx & 0xFFFF;
     let light_id = (in.idx >> 16) & 0xFFFF;
-    var vertWorldPos = modelMat[obj_id] * vec4f(in.vertexPosition, 1.0);
+    let vertWorldPos = modelMat[obj_id] * vec4f(in.vertexPosition, 1.0);
     return lightViewProjectionMat[light_id] * vertWorldPos;
 }

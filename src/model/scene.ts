@@ -34,6 +34,7 @@ export class Scene {
 		index: number;
 		name: string;
 	}[];
+
 	constructor() {
 		this.modelData = new Float32Array(16 * objectCount);
 		this.lightData = new Float32Array(16 * lightCount);
@@ -115,17 +116,25 @@ export class Scene {
 					const light: ILight = object.lights[l];
 
 					// Rotate light direction with object rotation
-					let rotated = vec3.rotateX(
+					let rotatedLightDirection = vec3.rotateX(
 						light.direction || [0, 0, 0],
 						[0, 0, 0],
 						utils.degToRad(model.eulers[0])
 					);
-					rotated = vec3.rotateY(rotated, [0, 0, 0], utils.degToRad(model.eulers[1]));
-					rotated = vec3.rotateZ(rotated, [0, 0, 0], utils.degToRad(model.eulers[2]));
+					rotatedLightDirection = vec3.rotateY(
+						rotatedLightDirection,
+						[0, 0, 0],
+						utils.degToRad(model.eulers[1])
+					);
+					rotatedLightDirection = vec3.rotateZ(
+						rotatedLightDirection,
+						[0, 0, 0],
+						utils.degToRad(model.eulers[2])
+					);
 
-					this.rotatedLightDir[4 * light_index] = rotated[0];
-					this.rotatedLightDir[4 * light_index + 1] = rotated[1];
-					this.rotatedLightDir[4 * light_index + 2] = rotated[2];
+					this.rotatedLightDir[4 * light_index] = rotatedLightDirection[0];
+					this.rotatedLightDir[4 * light_index + 1] = rotatedLightDirection[1];
+					this.rotatedLightDir[4 * light_index + 2] = rotatedLightDirection[2];
 					this.rotatedLightDir[4 * light_index + 3] = 0;
 
 					// Translate light to world space
@@ -141,11 +150,20 @@ export class Scene {
 					let lightViewMatrix: Mat4;
 					let lightProjectionMatrix: Mat4;
 					if (light.type === 'directional') {
-						lightTarget = vec3.addScaled(translatedPos, this.camera.position, -1);
-						lightProjectionMatrix = mat4.ortho(-20.0, 20.0, -20.0, 20.0, -40, 80);
-						lightViewMatrix = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
+						// const lightToCamVector = vec3.subtract(translatedPos, this.camera.position);
+						// const lightToCamMagnitude = Math.sqrt(
+						// 	Math.pow(lightToCamVector[0], 2) +
+						// 		Math.pow(lightToCamVector[1], 2) +
+						// 		Math.pow(lightToCamVector[2], 2)
+						// );
+
+						// const lightToCamDirection = vec3.divScalar(lightToCamVector, lightToCamMagnitude);
+
+						// lightTarget = vec3.add(translatedPos, lightToCamDirection);
+						lightProjectionMatrix = mat4.ortho(-60.0, 60.0, -60.0, 60.0, 100, 1.0);
+						lightViewMatrix = mat4.lookAt(translatedPos, this.camera.position, [0, 0, 1]);
 					} else {
-						lightTarget = vec3.add(translatedPos, rotated);
+						lightTarget = vec3.add(translatedPos, rotatedLightDirection);
 						lightProjectionMatrix = mat4.perspectiveReverseZ(light.limit || 1.0, 1.0, 0.1, 100);
 						lightViewMatrix = mat4.lookAt(translatedPos, lightTarget, [0, 0, 1]);
 					}
